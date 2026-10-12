@@ -8,7 +8,7 @@
     uv run install.py --target claude  # Claude Code のみ
     uv run install.py --no-fetch       # 依存とモデルの取得をしない
     uv run install.py --uninstall      # スキルを削除
-    uv run install.py --purge          # スキルと、取得したモデルも削除
+    uv run install.py --purge          # スキルと、取得したモデルと依存のキャッシュを削除
 
 uv がなければ、公式のインストーラで入れてから続ける。Mac と Windows で同じコマンドである。
 """
@@ -90,15 +90,45 @@ def model_cache_dir() -> Path:
     return Path(os.environ.get("HF_HOME") or Path.home() / ".cache" / "huggingface") / "hub" / name
 
 
+def dir_size(path: Path) -> float:
+    """ディレクトリの中身の合計(GB)。"""
+    return sum(f.stat().st_size for f in path.rglob("*") if f.is_file()) / 1e9
+
+
 def purge_model() -> None:
     cache = model_cache_dir()
     if not cache.is_dir():
         print(f"not found: {cache}")
         return
-    size = sum(f.stat().st_size for f in cache.rglob("*") if f.is_file()) / 1e9
+    size = dir_size(cache)
     shutil.rmtree(cache)
     print(f"removed: {cache} ({size:.1f}GB)")
-    print("依存は uv の共有キャッシュに残る。掃除するなら uv cache prune", file=sys.stderr)
+
+
+def purge_uv_envs(source: Path) -> None:
+    """uv がこのスキルのスクリプト用に作ったキャッシュ環境を消す。依存の実体はここにある。"""
+    uv = shutil.which("uv")
+    if not uv:
+        print("uv が無いので、依存のキャッシュは消していない(手動: uv cache clean)", file=sys.stderr)
+        return
+    out = subprocess.run([uv, "cache", "dir"], capture_output=True, text=True).stdout.strip()
+    if not out:
+        print("uv cache dir が分からず、依存のキャッシュは消していない", file=sys.stderr)
+        return
+    cache = Path(out)
+    # shortcut: uv の内部レイアウト(environments-v2/<スクリプト名>-<ハッシュ>)。変われば見つからないだけ
+    removed = 0
+    freed = 0.0
+    for script in sorted((source / "scripts").glob("*.py")):
+        for env in cache.glob(f"environments-v2/{script.stem.replace('_', '-')}-*"):
+            freed += dir_size(env)
+            shutil.rmtree(env)
+            removed += 1
+    if removed:
+        print(f"removed: uv のキャッシュ環境 {removed}個 ({freed:.1f}GB)")
+    else:
+        print(f"not found: {cache}/environments-v2")
+    print("展開済みのパッケージは他のプロジェクトと共有なので残る。全部消すなら uv cache clean", file=sys.stderr)
 
 
 # ---------------------------------------------------------------- CLI
@@ -106,7 +136,7 @@ def main() -> None:
     p = argparse.ArgumentParser(description="スキルを Claude Code / Codex へインストール・アンインストールする")
     p.add_argument("--target", choices=[*TARGETS, "all"], default="all", help="対象(既定 all)")
     p.add_argument("--uninstall", action="store_true", help="スキルを削除する")
-    p.add_argument("--purge", action="store_true", help="スキルと、取得したモデルも削除する")
+    p.add_argument("--purge", action="store_true", help="スキルと、取得したモデルと依存のキャッシュを削除する")
     p.add_argument("--no-fetch", action="store_true", help="依存とモデルの取得をしない")
     args = p.parse_args()
 
@@ -123,6 +153,7 @@ def main() -> None:
                 print(f"not installed: {target}")
         if args.purge:
             purge_model()
+            purge_uv_envs(source)
         return
 
     uv = ensure_uv()

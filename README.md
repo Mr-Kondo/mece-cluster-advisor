@@ -38,7 +38,7 @@ uv run install.py                   # 両方へインストール。再実行す
 uv run install.py --target claude   # Claude Code のみ(--target codex で Codex のみ)
 uv run install.py --no-fetch        # 依存とモデルの取得をしない
 uv run install.py --uninstall       # 両方から削除
-uv run install.py --purge           # 削除して、取得したモデルも消す
+uv run install.py --purge           # 削除して、取得したモデルと依存のキャッシュも消す
 ```
 
 インストールは、実行時の前提も整える。
@@ -53,7 +53,7 @@ uv run install.py --purge           # 削除して、取得したモデルも消
 
 Mac と Windows で同じコマンドである。`uv` がなければ `python3 install.py`(Windows は `python install.py`)でもよい。更新は `git pull` してから同じコマンドをもう一度実行する。消えたファイルは残さない。
 
-`--purge` が消すのはモデルのキャッシュ(`~/.cache/huggingface/hub/`。`HF_HOME` か `HF_HUB_CACHE` を設定していればそこ)である。uv が入れた依存は共有のキャッシュにあるので残る。掃除するなら `uv cache prune`。
+`--purge` が消すのは、モデルのキャッシュ(`~/.cache/huggingface/hub/`。`HF_HOME` か `HF_HUB_CACHE` を設定していればそこ)と、uv がこのスキルのスクリプト用に作った実行環境のキャッシュ(`uv cache dir` の下。実測で約1.5GB)である。展開済みのパッケージは他のプロジェクトと共有なので残す。それも消すなら `uv cache clean`(全消し)、未使用の分だけなら `uv cache prune`。
 
 `.claude/` は実行環境の設定(トークンを含む)、`__pycache__/` はキャッシュなので、コピーしない。
 

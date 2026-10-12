@@ -53,12 +53,17 @@ jobs:
           test -f "$HOME/.agents/skills/mece-cluster-advisor/SKILL.md"
           ${{ matrix.python }} install.py --uninstall --target all
           test ! -e "$HOME/.agents/skills/mece-cluster-advisor"
-      - name: 取得したモデルも消せる(--purge)
+      - name: 取得したモデルと、uv のキャッシュ環境も消せる(--purge)
         shell: bash
         run: |
           set -eu
           cache="$HOME/.cache/huggingface/hub/models--cl-nagoya--ruri-v3-310m"
           mkdir -p "$cache/snapshots/x"
           echo dummy > "$cache/snapshots/x/model.safetensors"
+          export UV_CACHE_DIR="$HOME/.uvcache-test"   # 実行環境のキャッシュではなく、この場所で確認する
+          mkdir -p "$UV_CACHE_DIR/environments-v2/mece-cluster-deadbeef" "$UV_CACHE_DIR/environments-v2/other-1234"
+          echo dummy > "$UV_CACHE_DIR/environments-v2/mece-cluster-deadbeef/pyvenv.cfg"
           ${{ matrix.python }} install.py --purge
           test ! -e "$cache"
+          test ! -e "$UV_CACHE_DIR/environments-v2/mece-cluster-deadbeef"  # このスキルの分は消える
+          test -e "$UV_CACHE_DIR/environments-v2/other-1234"               # 他人の分は残す
