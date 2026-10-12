@@ -16,15 +16,17 @@ jobs:
           - os: windows-latest
             python: python
     runs-on: ${{ matrix.os }}
+    env:
+      PYTHONUTF8: "1"  # Windows の python が cp1252 で日本語を出して落ちるのを避け、ログも読めるようにする
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.3.0
-      - name: インストール(uv run)
+      - name: インストール(uv run、取得はしない)
         shell: bash
         run: |
           set -eu
           target="$HOME/.claude/skills/mece-cluster-advisor"
-          uv run install.py
+          uv run install.py --no-fetch
           test -f "$target/SKILL.md"
           test -f "$target/scripts/mece_cluster.py"
           test ! -e "$target/.claude"         # 実行環境の設定は持ち込まない
@@ -47,7 +49,16 @@ jobs:
           set -eu
           ${{ matrix.python }} install.py --uninstall
           test ! -e "$HOME/.claude/skills/mece-cluster-advisor"
-          ${{ matrix.python }} install.py --target codex
+          ${{ matrix.python }} install.py --target codex --no-fetch
           test -f "$HOME/.agents/skills/mece-cluster-advisor/SKILL.md"
           ${{ matrix.python }} install.py --uninstall --target all
           test ! -e "$HOME/.agents/skills/mece-cluster-advisor"
+      - name: 取得したモデルも消せる(--purge)
+        shell: bash
+        run: |
+          set -eu
+          cache="$HOME/.cache/huggingface/hub/models--cl-nagoya--ruri-v3-310m"
+          mkdir -p "$cache/snapshots/x"
+          echo dummy > "$cache/snapshots/x/model.safetensors"
+          ${{ matrix.python }} install.py --purge
+          test ! -e "$cache"
