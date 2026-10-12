@@ -1,0 +1,98 @@
+[
+ {
+  "query": "顧客アンケートの自由回答が120件くらいある(~/Downloads/survey_free_text.csv)。これをMECEに分けて、グループごとにどんな声が多いか教えてほしい",
+  "should_trigger": true
+ },
+ {
+  "query": "新規事業のアイデア出しワークショップで付箋が80枚くらい出たんだけど、人によって切り口がバラバラで、カテゴリがかなり重なってる気がする。重複とか抜けがないか見てほしい",
+  "should_trigger": true
+ },
+ {
+  "query": "サポートに来た問い合わせ件名を200件エクスポートした(tickets.csv)。どういう切り口で分類するのがいいか提案してくれる？",
+  "should_trigger": true
+ },
+ {
+  "query": "会議で出た意見が50個ぐらいあってごちゃごちゃしてる。論点を整理して",
+  "should_trigger": true
+ },
+ {
+  "query": "ブログ記事のタイトル案を70本リストにしたんだけど、グルーピングして、似すぎてるものとどのグループにも入らないものを見せて",
+  "should_trigger": true
+ },
+ {
+  "query": "要件定義書の要件一覧(requirements.xlsx、約90行)をカテゴリで整理したい。漏れと重複がないかも確認して",
+  "should_trigger": true
+ },
+ {
+  "query": "Here are 60 customer feedback comments from our last NPS survey (pasted below). Can you group them into MECE categories and tell me which ones are ambiguous between groups?",
+  "should_trigger": true
+ },
+ {
+  "query": "営業部のヒアリングメモが40件あって、ざっくり分けたいんだけど手作業だと分類がぶれそうで不安。なんとかならない？",
+  "should_trigger": true
+ },
+ {
+  "query": "今のカテゴリ(価格・機能・サポート・その他)で、集めた顧客の声100件が漏れなく重複なく分類できてるか、データで確認したい",
+  "should_trigger": true
+ },
+ {
+  "query": "社内の改善提案が150件集まったので、似たもの同士でまとめて、どの提案がどのグループに入るか迷うかも教えて",
+  "should_trigger": true
+ },
+ {
+  "query": "この README の「概要」の段落が冗長で読みにくいので、意味は変えずに推敲して",
+  "should_trigger": false
+ },
+ {
+  "query": "sales.csv を月別・地域別に集計して、棒グラフにしてほしい。売上は revenue 列、地域は region 列",
+  "should_trigger": false
+ },
+ {
+  "query": "MECEって結局なに？ロジックツリーとかピラミッドストラクチャーとの違いを簡単に説明して",
+  "should_trigger": false
+ },
+ {
+  "query": "このスクリプトの scikit-learn の KMeans 部分、n_clusters を5から8に変えるとエラーになる。原因を調べて直して",
+  "should_trigger": false
+ },
+ {
+  "query": "施策がA案・B案・C案の3つあるんだけど、どれを選ぶべきか、それぞれのメリットとデメリットを整理して",
+  "should_trigger": false
+ },
+ {
+  "query": "提案書の誤字脱字と、言い回しの不自然なところをチェックして校正してほしい",
+  "should_trigger": false
+ },
+ {
+  "query": "論文の参考文献リスト(bibtex)を著者名のアルファベット順に並べ替えて、重複エントリを消して",
+  "should_trigger": false
+ },
+ {
+  "query": "sentence-transformers で日本語の埋め込みモデルをファインチューニングしたい。学習用のスクリプトを書いて",
+  "should_trigger": false
+ },
+ {
+  "query": "昨日の定例の議事録を要約して、決定事項とToDoを箇条書きで抜き出して",
+  "should_trigger": false
+ },
+ {
+  "query": "社内ブログの新しい記事タイトルを、テーマ「リモートワークの習慣」で5つ考えて",
+  "should_trigger": false
+ },
+ {
+  "query": "来期の施策アイデアを35個書き出した。30件を超えると頭の中だけでは整理しきれないので、MECEに分けてほしい",
+  "should_trigger": true
+ },
+ {
+  "query": "報告書の章立てを作り直したい。論点が60個くらいバラバラに並んでいて、章ごとに重複や抜けが出ないように分け直したい",
+  "should_trigger": true
+ },
+ {
+  "query": "AIが書いたPRの説明文を、不自然な比喩や飾りを取って自然な日本語に直して",
+  "should_trigger": false
+ },
+ {
+  "query": "提案書の見出しの言い回しを揃えて、AIっぽい表現を直して。論点は全部で8個しかない",
+  "should_trigger": false
+ }
+]
