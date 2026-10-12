@@ -26,6 +26,7 @@ LLM は呼ばない。項目のテキストは外部へ送らない。通信す�
 | `scripts/mece_cluster.py` | クラスタリング本体(依存はスクリプト内の PEP 723 ブロック) |
 | `scripts/test_mece_cluster.py` | モデルを使わない確認(合成した埋め込みで動く) |
 | `install.py` | インストール(更新)とアンインストール。Mac と Windows で同じ |
+| `.github/workflows/ci.yml` | `install.py` を Linux と Windows で動かす確認 |
 | `evals/` | 発動精度の評価セットと、その読み方 |
 
 ## インストール
@@ -81,6 +82,8 @@ silhouette に合格ラインはない。正解が分かっている3テーマ18
 ```bash
 uv run scripts/test_mece_cluster.py   # モデル不要
 ```
+
+`install.py` は GitHub Actions で Linux(ubuntu-latest)と Windows(windows-latest)の両方で動かしている。`uv run install.py` でのインストール、除外対象(`.claude/` など)が入らないこと、インストール元と同じ場所からの実行の拒否、アンインストールである。
 
 `SKILL.md` の description が発動するかの評価セットは [evals/](evals/) にある。実行方法、照合の修正、2026-10-12 の測定結果は [evals/README.md](evals/README.md) を見る。
 

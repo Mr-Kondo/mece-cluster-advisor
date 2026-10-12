@@ -1,0 +1,53 @@
+name: ci
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: python3
+          - os: windows-latest
+            python: python
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.0
+      - name: インストール(uv run)
+        shell: bash
+        run: |
+          set -eu
+          target="$HOME/.claude/skills/mece-cluster-advisor"
+          uv run install.py
+          test -f "$target/SKILL.md"
+          test -f "$target/scripts/mece_cluster.py"
+          test ! -e "$target/.claude"         # 実行環境の設定は持ち込まない
+          test ! -e "$target/__pycache__"
+          test ! -e "$target/.gitignore"
+          test ! -e "$target/.git"
+      - name: インストール元と同じ場所からは実行できない
+        shell: bash
+        run: |
+          set -eu
+          target="$HOME/.claude/skills/mece-cluster-advisor"
+          if (cd "$target" && uv run install.py --target claude); then
+            echo "error: 自己上書きを拒否しなかった"
+            exit 1
+          fi
+          test -f "$target/SKILL.md"          # 消えていない
+      - name: アンインストールと再インストール(uv なし)
+        shell: bash
+        run: |
+          set -eu
+          ${{ matrix.python }} install.py --uninstall
+          test ! -e "$HOME/.claude/skills/mece-cluster-advisor"
+          ${{ matrix.python }} install.py --target codex
+          test -f "$HOME/.agents/skills/mece-cluster-advisor/SKILL.md"
+          ${{ matrix.python }} install.py --uninstall --target all
+          test ! -e "$HOME/.agents/skills/mece-cluster-advisor"
