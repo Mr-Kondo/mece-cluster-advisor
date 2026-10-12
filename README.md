@@ -32,11 +32,11 @@ LLM は呼ばない。項目のテキストは外部へ送らない。通信す�
 スキルとして置く。Claude Code は `~/.claude/skills/`、Codex は `~/.agents/skills/` を見る。リポジトリ直下で実行する(`--delete` を使うため)。
 
 ```bash
-rsync -a --delete --exclude .git --exclude .claude --exclude .DS_Store ./ ~/.claude/skills/mece-cluster-advisor/
-rsync -a --delete --exclude .git --exclude .claude --exclude .DS_Store ./ ~/.agents/skills/mece-cluster-advisor/
+rsync -a --delete --exclude .git --exclude .gitignore --exclude .claude --exclude .DS_Store --exclude __pycache__ ./ ~/.claude/skills/mece-cluster-advisor/
+rsync -a --delete --exclude .git --exclude .gitignore --exclude .claude --exclude .DS_Store --exclude __pycache__ ./ ~/.agents/skills/mece-cluster-advisor/
 ```
 
-`.claude/` は実行環境の設定(トークンを含む)なので、同期しない。
+`.claude/` は実行環境の設定(トークンを含む)、`__pycache__/` はキャッシュなので、同期しない。
 
 Codex はスキル一覧で description を短く切るので、発動は弱くなる(未検証)。
 
