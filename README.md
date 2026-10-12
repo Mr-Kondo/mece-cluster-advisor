@@ -25,7 +25,7 @@ LLM は呼ばない。項目のテキストは外部へ送らない。通信す�
 | `references/output-schema.md` | 出力 JSON の項目、指標の意味、読み方 |
 | `scripts/mece_cluster.py` | クラスタリング本体(依存はスクリプト内の PEP 723 ブロック) |
 | `scripts/test_mece_cluster.py` | モデルを使わない確認(合成した埋め込みで動く) |
-| `install.py` | インストール(更新)とアンインストール。Mac と Windows で同じ |
+| `install.py` | インストール(更新)・実行時の前提(uv とモデル)の取得・アンインストール |
 | `.github/workflows/ci.yml` | `install.py` を Linux と Windows で動かす確認 |
 | `evals/` | 発動精度の評価セットと、その読み方 |
 
@@ -36,10 +36,24 @@ LLM は呼ばない。項目のテキストは外部へ送らない。通信す�
 ```bash
 uv run install.py                   # 両方へインストール。再実行すると更新になる
 uv run install.py --target claude   # Claude Code のみ(--target codex で Codex のみ)
+uv run install.py --no-fetch        # 依存とモデルの取得をしない
 uv run install.py --uninstall       # 両方から削除
+uv run install.py --purge           # 削除して、取得したモデルも消す
 ```
 
-Mac と Windows で同じコマンドである。`uv` がなければ `python3 install.py`(Windows は `python install.py`)でもよい。一度インストールしたあと更新するときは、`git pull` してから同じコマンドをもう一度実行する。消えたファイルは残さない。
+インストールは、実行時の前提も整える。
+
+| 前提 | `install.py` の動作 |
+|---|---|
+| `uv` が PATH にある | 無ければ公式インストーラで入れる(`~/.local/bin/`) |
+| 依存と埋め込みモデル | 4件の仮の入力を実際に流し、取得と動作を確かめる(モデルだけで約1.3GB) |
+| 通信できること | 取得はここで済む。以降は `HF_HUB_OFFLINE=1` でも動く |
+
+取得を後回しにするときは `--no-fetch`。その場合は、最初の実行時に取得と了承が要る(`SKILL.md` の手順3)。
+
+Mac と Windows で同じコマンドである。`uv` がなければ `python3 install.py`(Windows は `python install.py`)でもよい。更新は `git pull` してから同じコマンドをもう一度実行する。消えたファイルは残さない。
+
+`--purge` が消すのはモデルのキャッシュ(`~/.cache/huggingface/hub/`。`HF_HOME` か `HF_HUB_CACHE` を設定していればそこ)である。uv が入れた依存は共有のキャッシュにあるので残る。掃除するなら `uv cache prune`。
 
 `.claude/` は実行環境の設定(トークンを含む)、`__pycache__/` はキャッシュなので、コピーしない。
 
@@ -67,7 +81,7 @@ uv run scripts/mece_cluster.py items.csv --column comment --k 5
 | `--seed` | 乱数の種(既定 42)。同じ入力と設定なら同じ結果になる |
 | `--out` | JSON の保存先。省略すると標準出力 |
 
-実行には `uv` と Python 3.12 以上が要る。初回は埋め込みモデル(約1.2GB)とライブラリを取得する。macOS(arm64)での実測で、Linux の CUDA 版 torch ではさらに増える。2回目以降はキャッシュを使う。
+実行には `uv` と Python 3.12 以上が要る(`install.py` は uv が無ければ入れる)。初回は埋め込みモデル(約1.2GB)とライブラリを取得する。macOS(arm64)での実測で、Linux の CUDA 版 torch ではさらに増える。2回目以降はキャッシュを使う。
 
 ## 出力
 
