@@ -25,18 +25,22 @@ LLM は呼ばない。項目のテキストは外部へ送らない。通信す�
 | `references/output-schema.md` | 出力 JSON の項目、指標の意味、読み方 |
 | `scripts/mece_cluster.py` | クラスタリング本体(依存はスクリプト内の PEP 723 ブロック) |
 | `scripts/test_mece_cluster.py` | モデルを使わない確認(合成した埋め込みで動く) |
+| `install.py` | インストール(更新)とアンインストール。Mac と Windows で同じ |
 | `evals/` | 発動精度の評価セットと、その読み方 |
 
 ## インストール
 
-スキルとして置く。Claude Code は `~/.claude/skills/`、Codex は `~/.agents/skills/` を見る。リポジトリ直下で実行する(`--delete` を使うため)。
+スキルとしてコピーする。Claude Code は `~/.claude/skills/`、Codex は `~/.agents/skills/` を見る。リポジトリ直下で実行する。
 
 ```bash
-rsync -a --delete --exclude .git --exclude .gitignore --exclude .claude --exclude .DS_Store --exclude __pycache__ ./ ~/.claude/skills/mece-cluster-advisor/
-rsync -a --delete --exclude .git --exclude .gitignore --exclude .claude --exclude .DS_Store --exclude __pycache__ ./ ~/.agents/skills/mece-cluster-advisor/
+uv run install.py                   # 両方へインストール。再実行すると更新になる
+uv run install.py --target claude   # Claude Code のみ(--target codex で Codex のみ)
+uv run install.py --uninstall       # 両方から削除
 ```
 
-`.claude/` は実行環境の設定(トークンを含む)、`__pycache__/` はキャッシュなので、同期しない。
+Mac と Windows で同じコマンドである。`uv` がなければ `python3 install.py`(Windows は `python install.py`)でもよい。一度インストールしたあと更新するときは、`git pull` してから同じコマンドをもう一度実行する。消えたファイルは残さない。
+
+`.claude/` は実行環境の設定(トークンを含む)、`__pycache__/` はキャッシュなので、コピーしない。
 
 Codex はスキル一覧で description を短く切るので、発動は弱くなる(未検証)。
 
