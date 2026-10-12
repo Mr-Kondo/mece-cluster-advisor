@@ -35,7 +35,7 @@ MECE は、目的と軸で決まる。同じ項目でも、目的が変われば
 
 `install.py` で入れた場合は、モデルとライブラリの取得は済んでいる。この手順が要るのは、`--no-fetch` で入れたときだけである。
 
-初回の実行は、モデル(約1.2GB)とライブラリ(数百MB)を取得する。macOS(arm64)での実測である。Linux では CUDA 版の torch で、さらに増えることがある。取得量を伝えて、了承を得てから実行する。2回目以降は、キャッシュを使う。
+初回の実行は、モデル(約1.2GB)とライブラリ(数百MB)を取得する。macOS(arm64)での実測である。Linux では CUDA 版の torch などで、さらに増えることがある。取得量を伝えて、了承を得てから実行する。2回目以降は、キャッシュを使う。GPU/アクセラレータ(CUDA, Apple MPS, Intel XPU, DirectML, Huawei NPU 等)があれば自動で利用し、無ければ CPU を使う。
 
 項目のテキストは外部へ送らない。通信するのは、モデルとライブラリの取得と更新確認だけである。
 
@@ -55,6 +55,7 @@ uv run scripts/mece_cluster.py items.txt --out result.json
 | `--k` | グループ数。既定の `auto` は、silhouette が最大の k を選ぶ |
 | `--k-max` | `auto` で試す k の上限。既定は 8 |
 | `--model` / `--prefix` | 埋め込みモデルと入力の接頭辞。既定は ruri-v3-310m で、接頭辞は自動 |
+| `--device` | 計算デバイス。既定の `auto` は利用可能な GPU/アクセラレータ(cuda, mps, xpu, dml, npu, cpu 等)を自動選択 |
 
 ### 5. 結果を読む
 

@@ -79,9 +79,10 @@ uv run scripts/mece_cluster.py items.csv --column comment --k 5
 | `--k-max` | `auto` で試す k の上限(既定 8) |
 | `--model` / `--prefix` | 埋め込みモデルと入力の接頭辞(既定 `cl-nagoya/ruri-v3-310m`、接頭辞はモデル名から決める) |
 | `--seed` | 乱数の種(既定 42)。同じ入力と設定なら同じ結果になる |
+| `--device` | 計算デバイス(既定 `auto`。CUDA, Apple MPS, Intel XPU, DirectML(AMD/Intel/Windows), Huawei NPU, CPU 等を自動選択) |
 | `--out` | JSON の保存先。省略すると標準出力 |
 
-実行には `uv` と Python 3.12 以上が要る(`install.py` は uv が無ければ入れる)。初回は埋め込みモデル(約1.2GB)とライブラリを取得する。macOS(arm64)での実測で、Linux の CUDA 版 torch ではさらに増える。2回目以降はキャッシュを使う。
+実行には `uv` と Python 3.12 以上が要る(`install.py` は uv が無ければ入れる)。初回は埋め込みモデル(約1.2GB)とライブラリを取得する。GPU/アクセラレータ(NVIDIA CUDA, Apple MPS, Intel XPU, DirectML, Huawei NPU 等)があれば自動で利用し、無ければ CPU を使う。`--device` で明示指定もできる。2回目以降はキャッシュを使う。
 
 ## 出力
 

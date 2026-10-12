@@ -30,6 +30,7 @@
 | `silhouette_mean` | 全項目の silhouette の平均 |
 | `warnings` | 根拠が弱い選択の警告。自動で選んだ k が探索範囲の上限、1件だけのグループ、など |
 | `model` / `prefix` | 使った埋め込みモデルと、入力に付けた接頭辞 |
+| `device` | 埋め込み計算に使ったデバイス(`cuda`, `mps`, `xpu`, `dml`, `npu`, `cpu` など) |
 | `tokenizer` | `sudachi` なら、キーワードは形態素解析による。`regex` なら、日本語が語に分かれていないので、キーワードは参考にとどめる |
 | `seed` | 乱数の種。同じ入力と設定なら、同じ結果になる |
 
@@ -91,6 +92,7 @@
     "model": "cl-nagoya/ruri-v3-310m",
     "prefix": "トピック: ",
     "tokenizer": "sudachi",
+    "device": "mps",
     "n_items": 20,
     "k": 4,
     "k_selection": null,

@@ -73,7 +73,86 @@ def load_items(text: str, csv_mode: bool = False, column: str | None = None) -> 
     return [s.strip() for s in items if s.strip()]
 
 
-# ---------------------------------------------------------------- 埋め込み
+# ---------------------------------------------------------------- 埋め込みとデバイス
+def resolve_device(device_pref: str | None = "auto") -> tuple[object, str]:
+    """埋め込み計算に使うデバイスを決定する。
+
+    auto のときは利用可能なアクセラレータを優先順に探し、無ければ cpu に落とす。
+    対応: cuda (NVIDIA / AMD ROCm), mps (Apple Silicon), xpu (Intel GPU),
+          dml / directml (DirectML: Windows), npu (Huawei Ascend),
+          hpu (Habana Gaudi), torch.accelerator, cpu
+
+    戻り値: (SentenceTransformer に渡すデバイス, 表示用の名前)
+    """
+    pref = (device_pref or "auto").strip().lower()
+
+    try:
+        import torch
+    except ImportError:
+        # torch が入っていない環境(テスト等)のフォールバック
+        return pref if pref != "auto" else "cpu", pref if pref != "auto" else "cpu"
+
+    if pref in ("dml", "directml"):
+        try:
+            import torch_directml
+
+            if not torch_directml.is_available():
+                raise SystemExit("error: DirectML デバイスが利用できません。")
+            return torch_directml.device(), "dml"
+        except ImportError:
+            try:
+                return torch.device("dml"), "dml"
+            except Exception:
+                raise SystemExit("error: DirectML を利用するには torch-directml が必要です ('pip install torch-directml')。")
+
+    if pref == "auto":
+        # 1. CUDA (NVIDIA または AMD ROCm)
+        if torch.cuda.is_available():
+            idx = torch.cuda.current_device() if hasattr(torch.cuda, "current_device") else 0
+            name = f"cuda:{idx}" if torch.cuda.device_count() > 1 else "cuda"
+            return name, name
+        # 2. Apple Silicon (MPS)
+        if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            return "mps", "mps"
+        # 3. Intel GPU (XPU)
+        if hasattr(torch, "xpu") and torch.xpu.is_available():
+            idx = torch.xpu.current_device() if hasattr(torch.xpu, "current_device") else 0
+            name = f"xpu:{idx}" if torch.xpu.device_count() > 1 else "xpu"
+            return name, name
+        # 4. DirectML (Windows AMD/Intel GPU 等)
+        try:
+            import torch_directml
+
+            if torch_directml.is_available():
+                return torch_directml.device(), "dml"
+        except ImportError:
+            pass
+        # 5. Huawei Ascend NPU
+        if hasattr(torch, "npu") and torch.npu.is_available():
+            idx = torch.npu.current_device() if hasattr(torch.npu, "current_device") else 0
+            name = f"npu:{idx}" if torch.npu.device_count() > 1 else "npu"
+            return name, name
+        # 6. Habana Gaudi HPU
+        if hasattr(torch, "hpu") and torch.hpu.is_available():
+            return "hpu", "hpu"
+        # 7. PyTorch 2.4+ torch.accelerator による汎用アクセラレータ
+        if hasattr(torch, "accelerator") and torch.accelerator.is_available():
+            acc = torch.accelerator.current_accelerator()
+            if acc is not None:
+                dev_type = acc.type if hasattr(acc, "type") else str(acc)
+                return acc, dev_type
+        # 8. CPU
+        return "cpu", "cpu"
+
+    # 明示指定 (cuda, cuda:0, mps, xpu, npu, cpu 等)
+    try:
+        dev = torch.device(pref)
+        display = dev.type if dev.index is None else f"{dev.type}:{dev.index}"
+        return pref, display
+    except Exception as e:
+        raise SystemExit(f"error: 不正なデバイス指定 '{device_pref}': {e}")
+
+
 def embedding_prefix(model: str, override: str | None) -> str:
     """モデルが要求する入力の接頭辞(クラスタリング用)。"""
     if override is not None:
@@ -86,13 +165,14 @@ def embedding_prefix(model: str, override: str | None) -> str:
     return ""
 
 
-def embed(texts: list[str], model: str, prefix: str) -> np.ndarray:
+def embed(texts: list[str], model: str, prefix: str, device: str = "auto") -> tuple[np.ndarray, str]:
     from sentence_transformers import SentenceTransformer
 
-    print(f"embedding {len(texts)} items with {model}", file=sys.stderr)
-    st = SentenceTransformer(model)
+    dev_target, dev_name = resolve_device(device)
+    print(f"embedding {len(texts)} items with {model} on {dev_name}", file=sys.stderr)
+    st = SentenceTransformer(model, device=dev_target)
     vecs = st.encode([prefix + t for t in texts], normalize_embeddings=True, batch_size=32, show_progress_bar=False)
-    return np.asarray(vecs, dtype=np.float64)
+    return np.asarray(vecs, dtype=np.float64), dev_name
 
 
 # ---------------------------------------------------------------- クラスタリング
@@ -267,6 +347,11 @@ def main() -> None:
     p.add_argument("--model", default=DEFAULT_MODEL, help=f"埋め込みモデル(既定 {DEFAULT_MODEL})")
     p.add_argument("--prefix", help="入力の接頭辞。省略するとモデル名から決める")
     p.add_argument("--seed", type=int, default=42)
+    p.add_argument(
+        "--device",
+        default="auto",
+        help="計算デバイス(既定 auto: 利用可能な GPU/アクセラレータを自動選択。cuda, mps, xpu, dml, npu, cpu 等)",
+    )
     p.add_argument("--out", help="JSON の保存先。省略すると標準出力")
     args = p.parse_args()
 
@@ -280,9 +365,15 @@ def main() -> None:
 
     prefix = embedding_prefix(args.model, args.prefix)
     tokenize, tok_name = make_tokenizer()
-    emb = embed(texts, args.model, prefix)
+    emb, dev_name = embed(texts, args.model, prefix, device=args.device)
     result = build_result(
-        texts, emb, k, args.k_max, args.seed, {"model": args.model, "prefix": prefix, "tokenizer": tok_name}, tokenize
+        texts,
+        emb,
+        k,
+        args.k_max,
+        args.seed,
+        {"model": args.model, "prefix": prefix, "tokenizer": tok_name, "device": dev_name},
+        tokenize,
     )
 
     out = json.dumps(result, ensure_ascii=False, indent=2)

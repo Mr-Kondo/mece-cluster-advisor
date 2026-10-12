@@ -16,6 +16,7 @@ from mece_cluster import (
     embedding_prefix,
     load_items,
     make_tokenizer,
+    resolve_device,
     silhouette,
 )
 
@@ -79,6 +80,42 @@ def test_build_result_is_consistent():
 def test_warns_when_auto_k_hits_upper_bound():
     res = build_result(TEXTS, EMB, k=None, k_max=2, seed=0, meta={}, tokenize=lambda t: [t])
     assert res["meta"]["k"] == 2 and len(res["meta"]["warnings"]) == 1
+
+
+def test_resolve_device_explicit_cpu():
+    dev, name = resolve_device("cpu")
+    assert str(dev) == "cpu" and name == "cpu"
+
+
+def test_resolve_device_auto():
+    dev, name = resolve_device("auto")
+    assert isinstance(name, str) and len(name) > 0
+
+
+def test_resolve_device_invalid():
+    try:
+        import torch  # noqa: F401
+    except ImportError:
+        return  # torch が入っていない環境ではスキップ
+    try:
+        resolve_device("non_existent_device_123")
+    except SystemExit:
+        pass
+    else:
+        raise AssertionError("invalid device should trigger SystemExit")
+
+
+def test_build_result_includes_device_in_meta():
+    res = build_result(
+        TEXTS,
+        EMB,
+        k=2,
+        k_max=4,
+        seed=0,
+        meta={"model": "dummy", "prefix": "", "tokenizer": "regex", "device": "xpu"},
+        tokenize=lambda t: [t],
+    )
+    assert res["meta"]["device"] == "xpu"
 
 
 if __name__ == "__main__":

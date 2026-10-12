@@ -21,6 +21,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.3.0
+      - name: 単体テストの実行
+        shell: bash
+        run: |
+          uv run scripts/test_mece_cluster.py
       - name: インストール(uv run、取得はしない)
         shell: bash
         run: |
