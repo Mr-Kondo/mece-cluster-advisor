@@ -1,10 +1,12 @@
 # MECE Cluster Advisor
 
-項目の集合(アイデア、要件、顧客の声、記事タイトル、論点など)を MECE(漏れなく重複なく)に分類・整理するときの判断材料を作る、Claude Code / Codex / Gemini CLI 向けのスキルである。
+項目の集合(アイデア、要件、顧客の声、記事タイトル、論点など)を、MECE(漏れなく重複なく)に分類・整理するための判断材料を作る、Claude Code と Codex 向けのスキルである。`install.py` は、この2つへインストールする。
 
 分割を自動で確定する道具ではない。埋め込みとクラスタリングで、グループ候補、境界にある曖昧な項目、重複しやすいグループの組を出す。軸の命名、排他性の判定、網羅性の穴の指摘は、ホストのモデルが行い、最終判断は利用者に残す。
 
-MECE は目的と軸で決まる。同じ項目でも、目的が変われば正しい分け方が変わる。埋め込みが測れるのは意味の近さだけで、「軸が1つか」と「全体を覆っているか」は測れない。この2点をモデルと利用者が判断する、という分担にしている。
+MECE は目的と軸で決まる。同じ項目でも、目的が変われば正しい分け方も変わる。埋め込みが測れるのは意味の近さだけである。「軸が1つか」と「全体を覆っているか」は測れない。そのため、この2点はモデルと利用者が判断する、という分担にしている。
+
+具体的な操作手順は [docs/usage.md](docs/usage.md) にある。
 
 ## 担当の分け方
 
@@ -14,7 +16,7 @@ MECE は目的と軸で決まる。同じ項目でも、目的が変われば正
 | ホストのモデル | グループの命名と定義、軸の確認、排他性の判定、網羅性の穴の指摘 |
 | 利用者 | 目的と軸の確定、最終的な分割の決定 |
 
-LLM は呼ばない。項目のテキストは外部へ送らない。通信するのは、初回のモデル取得と更新確認だけである。
+LLM は呼ばない。項目のテキストは外部へ送らない。通信は、初回のモデル取得と更新確認のときだけである。
 
 ## 構成
 
@@ -25,72 +27,58 @@ LLM は呼ばない。項目のテキストは外部へ送らない。通信す�
 | `references/output-schema.md` | 出力 JSON の項目、指標の意味、読み方 |
 | `scripts/mece_cluster.py` | クラスタリング本体(依存はスクリプト内の PEP 723 ブロック) |
 | `scripts/test_mece_cluster.py` | モデルを使わない確認(合成した埋め込みで動く) |
-| `install.py` | インストール(更新)・実行時の前提(uv とモデル)の取得・アンインストール |
+| `install.py` | インストール(更新)、実行時の前提(uv とモデル)の取得、アンインストール |
 | `.github/workflows/ci.yml` | `install.py` を Linux と Windows で動かす確認 |
+| `docs/usage.md` | 操作方法の詳細(インストール、オプション、結果の読み方) |
 | `evals/` | 発動精度の評価セットと、その読み方 |
 
 ## インストール
 
-スキルとしてコピーする。Claude Code は `~/.claude/skills/`、Codex は `~/.agents/skills/` を見る。リポジトリ直下で実行する。
+スキルとしてコピーする。リポジトリ直下で実行する。
 
 ```bash
-uv run install.py                   # 両方へインストール。再実行すると更新になる
-uv run install.py --target claude   # Claude Code のみ(--target codex で Codex のみ)
-uv run install.py --no-fetch        # 依存とモデルの取得をしない
-uv run install.py --uninstall       # 両方から削除
-uv run install.py --purge           # 削除して、取得したモデルと依存のキャッシュも消す
+uv run install.py
 ```
 
-インストールは、実行時の前提も整える。
-
-| 前提 | `install.py` の動作 |
-|---|---|
-| `uv` が PATH にある | 無ければ公式インストーラで入れる(`~/.local/bin/`) |
-| 依存と埋め込みモデル | 4件の仮の入力を実際に流し、取得と動作を確かめる(モデルだけで約1.3GB) |
-| 通信できること | 取得はここで済む。以降は `HF_HUB_OFFLINE=1` でも動く |
-
-取得を後回しにするときは `--no-fetch`。その場合は、最初の実行時に取得と了承が要る(`SKILL.md` の手順3)。
-
-Mac と Windows で同じコマンドである。`uv` がなければ `python3 install.py`(Windows は `python install.py`)でもよい。更新は `git pull` してから同じコマンドをもう一度実行する。消えたファイルは残さない。
-
-`--purge` が消すのは、モデルのキャッシュ(`~/.cache/huggingface/hub/`。`HF_HOME` か `HF_HUB_CACHE` を設定していればそこ)と、uv がこのスキルのスクリプト用に作った実行環境のキャッシュ(`uv cache dir` の下。実測で約1.5GB)である。展開済みのパッケージは他のプロジェクトと共有なので残す。それも消すなら `uv cache clean`(全消し)、未使用の分だけなら `uv cache prune`。
-
-`.claude/` は実行環境の設定(トークンを含む)、`__pycache__/` はキャッシュなので、コピーしない。
-
-Codex はスキル一覧で description を短く切るので、発動は弱くなる(未検証)。
+- Claude Code は `~/.claude/skills/`、Codex は `~/.agents/skills/` を見る。
+- 再実行すると更新になる。
+- 対象の絞り込み、取得の省略、削除、キャッシュの削除は、[docs/usage.md](docs/usage.md) の「インストール」にある。
 
 ## 使い方
 
-スキルとして使うときは、「MECEに分けて」「分類の切り口を提案して」「大量のコメントをグルーピングして」「カテゴリの重複や抜け漏れを確認して」のように依頼する。30件前後までならモデルが直接分けるので、スクリプトは使わない(`SKILL.md` の「スクリプトを使わないとき」)。
+スキルとして使うときは、次のように依頼する。
 
-スクリプトを直接叩くときは、次のとおり。
+- 「MECEに分けて」
+- 「分類の切り口を提案して」
+- 「大量のコメントをグルーピングして」
+- 「カテゴリの重複や抜け漏れを確認して」
+
+30件前後までならモデルが直接分けるので、スクリプトは使わない(`SKILL.md` の「スクリプトを使わないとき」)。
+
+スクリプトを直接実行するときは、次のとおり。
 
 ```bash
 uv run scripts/mece_cluster.py items.txt --out result.json
 uv run scripts/mece_cluster.py items.csv --column comment --k 5
 ```
 
-入力は、1行1項目のテキストか、1行目をヘッダとする CSV(`.csv` の拡張子で判定)。標準入力は `-`。
-
-| 指定 | 内容 |
-|---|---|
-| `--column` | CSV の列名または0始まりの列番号(既定: 先頭列) |
-| `--k` | グループ数。`auto`(既定)は silhouette が最大の k |
-| `--k-max` | `auto` で試す k の上限(既定 8) |
-| `--model` / `--prefix` | 埋め込みモデルと入力の接頭辞(既定 `cl-nagoya/ruri-v3-310m`、接頭辞はモデル名から決める) |
-| `--seed` | 乱数の種(既定 42)。同じ入力と設定なら同じ結果になる |
-| `--device` | 計算デバイス(既定 `auto`。CUDA, Apple MPS, Intel XPU, DirectML(AMD/Intel/Windows), Huawei NPU, CPU 等を自動選択) |
-| `--out` | JSON の保存先。省略すると標準出力 |
-
-実行には `uv` と Python 3.12 以上が要る(`install.py` は uv が無ければ入れる)。初回は埋め込みモデル(約1.2GB)とライブラリを取得する。GPU/アクセラレータ(NVIDIA CUDA, Apple MPS, Intel XPU, DirectML, Huawei NPU 等)があれば自動で利用し、無ければ CPU を使う。`--device` で明示指定もできる。2回目以降はキャッシュを使う。
+入力の形式、オプション、初回の取得、計算デバイスの指定は、[docs/usage.md](docs/usage.md) の「スクリプトを直接使う」にある。
 
 ## 出力
 
-JSON を出す。読む順は `meta.warnings` → `meta.k` と `meta.k_selection` → `clusters` → `boundary_pairs` → 必要な分だけ `items` である。指標の意味と実例は [references/output-schema.md](references/output-schema.md) にある。
+JSON を出す。次の順に読む。
 
-項目が100件を超えるときは `items` を全部読まない。
+1. `meta.warnings`
+2. `meta.k` と `meta.k_selection`
+3. `clusters`
+4. `boundary_pairs`
+5. 必要な分だけ `items`
+
+項目が100件を超えるときは、`items` を全部読まない。
 
 silhouette に合格ラインはない。正解が分かっている3テーマ18件を k=3 で完全に分けても、平均は 0.18 だった。同じデータで k を変えたときの比較に使う。
+
+指標の意味と実例は [references/output-schema.md](references/output-schema.md) にある。
 
 ## 確認と評価
 
@@ -98,7 +86,12 @@ silhouette に合格ラインはない。正解が分かっている3テーマ18
 uv run scripts/test_mece_cluster.py   # モデル不要
 ```
 
-`install.py` は GitHub Actions で Linux(ubuntu-latest)と Windows(windows-latest)の両方で動かしている。`uv run install.py` でのインストール、除外対象(`.claude/` など)が入らないこと、インストール元と同じ場所からの実行の拒否、アンインストールである。
+`install.py` は GitHub Actions で、Linux(ubuntu-latest)と Windows(windows-latest)の両方で動かして確かめている。確かめている内容は次のとおり。
+
+- `uv run install.py` でインストールできること
+- 除外対象(`.claude/` など)が入らないこと
+- インストール元と同じ場所からの実行が拒否されること
+- アンインストールできること
 
 `SKILL.md` の description が発動するかの評価セットは [evals/](evals/) にある。実行方法、照合の修正、2026-10-12 の測定結果は [evals/README.md](evals/README.md) を見る。
 

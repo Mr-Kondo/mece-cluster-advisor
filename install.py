@@ -71,7 +71,7 @@ def ensure_uv() -> str:
 
 def fetch(uv: str, script: Path) -> None:
     """依存と埋め込みモデルを先に取得する。仮の4件を実際に流して、動くことまで確かめる。"""
-    print("依存とモデルを取得する(モデルだけで約1.3GB)。初回だけ時間がかかる", file=sys.stderr)
+    print("依存とモデルを取得する(モデルだけで約1.2GB)。初回だけ時間がかかる", file=sys.stderr)
     with tempfile.TemporaryDirectory() as tmp:
         items = Path(tmp) / "items.txt"
         items.write_text("テスト\n例\n見本\nサンプル\n", encoding="utf-8")
