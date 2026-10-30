@@ -31,6 +31,7 @@ import csv
 import io
 import json
 import re
+import shutil
 import sys
 from pathlib import Path
 
@@ -87,6 +88,15 @@ def load_items(text: str, csv_mode: bool = False, column: str | None = None) -> 
 
 
 # ---------------------------------------------------------------- 埋め込みとデバイス
+def no_accelerator_hint() -> str | None:
+    """auto が CPU に落ちたとき、GPU を使えていない可能性と直し方を返す。GPU の有無が分からなければ None。"""
+    if shutil.which("nvidia-smi") or shutil.which("rocm-smi"):
+        return "nvidia-smi か rocm-smi がある。GPU があるのに CPU になっているなら、この torch が GPU に対応していない(CPU 版の可能性)。GPU 対応の torch を入れる。"
+    if sys.platform == "win32":
+        return "Windows で AMD / Intel GPU を使うなら、'pip install torch-directml' で DirectML を使える。"
+    return None
+
+
 def resolve_device(device_pref: str | None = "auto") -> tuple[object, str]:
     """埋め込み計算に使うデバイスを決定する。
 
@@ -155,6 +165,8 @@ def resolve_device(device_pref: str | None = "auto") -> tuple[object, str]:
                 dev_type = acc.type if hasattr(acc, "type") else str(acc)
                 return acc, dev_type
         # 8. CPU
+        if hint := no_accelerator_hint():
+            print(f"note: {hint}", file=sys.stderr)
         return "cpu", "cpu"
 
     # 明示指定 (cuda, cuda:0, mps, xpu, npu, cpu 等)
@@ -188,8 +200,24 @@ def embed(texts: list[str], model: str, prefix: str, device: str = "auto") -> tu
 
     dev_target, dev_name = resolve_device(device)
     print(f"embedding {len(texts)} items with {model} on {dev_name}", file=sys.stderr)
-    st = SentenceTransformer(model, device=dev_target)
-    vecs = st.encode([prefix + t for t in texts], normalize_embeddings=True, batch_size=32, show_progress_bar=False)
+
+    def run(target) -> np.ndarray:
+        st = SentenceTransformer(model, device=target)
+        return st.encode([prefix + t for t in texts], normalize_embeddings=True, batch_size=32, show_progress_bar=False)
+
+    failure = None
+    try:
+        vecs = run(dev_target)
+    except OSError:
+        raise  # 取得やファイルの失敗は、CPU に替えても直らない
+    except Exception as e:
+        if (device or "auto").strip().lower() != "auto" or dev_name == "cpu":
+            raise  # 利用者が選んだデバイスは、黙って CPU に替えない
+        failure = e
+    if failure is not None:  # 例外の外でやり直す(失敗したモデルを、メモリに残したまま CPU に読み込まない)
+        print(f"warning: {dev_name} で失敗した({type(failure).__name__}: {failure})。CPU でやり直す", file=sys.stderr)
+        failure = None
+        dev_name, vecs = "cpu", run("cpu")
     return np.asarray(vecs, dtype=np.float64), dev_name
 
 

@@ -14,6 +14,7 @@ from mece_cluster import (
     build_result,
     choose_k,
     cosine_distance,
+    embed,
     embedding_prefix,
     load_items,
     make_tokenizer,
@@ -151,6 +152,76 @@ def test_resolve_device_unavailable_accelerator():
             sys.modules.pop("torch", None)
         else:
             sys.modules["torch"] = saved
+
+
+def _stub_torch(cuda=False, mps=False):
+    from types import SimpleNamespace as NS
+
+    return NS(
+        device=lambda s: NS(type=s.split(":")[0], index=None),
+        cuda=NS(is_available=lambda: cuda),
+        backends=NS(mps=NS(is_available=lambda: mps)),
+    )
+
+
+def test_embed_auto_falls_back_to_cpu_but_explicit_does_not():
+    """auto で選んだ GPU が失敗したら CPU でやり直す。明示したデバイスは失敗のままにする。"""
+    import sys
+    from types import SimpleNamespace as NS
+
+    class FakeST:
+        def __init__(self, model, device):
+            self.device = device
+
+        def encode(self, texts, **kw):
+            if self.device == "mps":
+                raise RuntimeError("unsupported op")
+            return np.ones((len(texts), 2))
+
+    saved = {k: sys.modules.get(k) for k in ("torch", "sentence_transformers")}
+    try:
+        sys.modules["torch"] = _stub_torch(mps=True)
+        sys.modules["sentence_transformers"] = NS(SentenceTransformer=FakeST)
+        vecs, name = embed(["a", "b"], "m", "", device="auto")
+        assert name == "cpu" and vecs.shape == (2, 2)
+        try:
+            embed(["a"], "m", "", device="mps")
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError("explicit device must not fall back")
+        class NoNet(FakeST):
+            def __init__(self, model, device):
+                raise OSError("offline")
+
+        sys.modules["sentence_transformers"] = NS(SentenceTransformer=NoNet)
+        try:
+            embed(["a"], "m", "", device="auto")
+        except OSError:
+            pass
+        else:
+            raise AssertionError("OSError must not trigger a CPU retry")
+    finally:
+        for k, v in saved.items():
+            sys.modules.pop(k, None) if v is None else sys.modules.__setitem__(k, v)
+
+
+def test_auto_cpu_hint_when_gpu_tool_present():
+    import io
+    import sys
+    from contextlib import redirect_stderr
+    from unittest import mock
+
+    saved = sys.modules.get("torch")
+    try:
+        sys.modules["torch"] = _stub_torch()
+        for found, expect in (("/usr/bin/nvidia-smi", True), (None, False)):
+            buf = io.StringIO()
+            with mock.patch("shutil.which", return_value=found), mock.patch("sys.platform", "linux"), redirect_stderr(buf):
+                assert resolve_device("auto")[1] == "cpu"
+            assert ("GPU" in buf.getvalue()) == expect, buf.getvalue()
+    finally:
+        sys.modules.pop("torch", None) if saved is None else sys.modules.__setitem__("torch", saved)
 
 
 def test_build_result_includes_device_in_meta():
