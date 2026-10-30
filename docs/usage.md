@@ -75,8 +75,9 @@ Windows では `python install.py` を使う。
 
 ### コピーされないもの
 
-- `.claude/`:実行環境の設定を含み、トークンも入るため、コピーしない。
-- `__pycache__/`:キャッシュのため、コピーしない。
+- Git の作業ツリー(リポジトリ直下)から実行したとき: Git が追跡しているファイルだけをコピーする。未追跡のファイル(`.env`、`CLAUDE.local.md`、メモなど、名前によらない)は入らない。さらに、追跡していても `.git`、`.gitignore`、`.claude/`、`.codex/`、`.serena/`、`.venv/`、`feedback/`、`__pycache__/`、`*.local.md` は入れない。
+- Release の zip の展開先など、Git の管理外から実行したとき: 上の名前のものを除いて、すべてコピーする。zip には追跡しているファイルしか入っていないので、結果は同じになる。
+- `.git` があるのに `git` が使えないときは、名前の除外に戻さず、止まる。`git` を入れるか、zip から入れる。
 
 ### `--purge` が消すもの
 
@@ -94,7 +95,9 @@ Windows では `python install.py` を使う。
 
 ### Codex の注意
 
-Codex はスキル一覧で description を短く切るため、発動が弱くなる(未検証)。
+Codex は、スキル一覧の description を、スキルの数に応じて切る。スキルが多い環境では、前方の十数文字しか残らない。この Mac(Codex 0.164.0、スキル 200 件超)では、このスキルは `項目の集合(アイデア、要件、` までしか見えなかった。
+
+`evals/trigger-eval.json` の 24 件を `codex exec` で流した結果は、肯定 12 件のうち 10 件で発動し、否定 12 件では発動しなかった。外れたのは、「MECE」と書かれていない依頼(問い合わせ件名の分類の切り口の提案、タイトル案のグルーピング)だった。名前と依頼文の語に頼って発動しているので、スキルが多い環境では、依頼に「MECE」「分類」などを入れると確実になる。description を直す件は #36 にある。
 
 ## スキルとして使う
 
@@ -146,6 +149,27 @@ GPU やアクセラレータ(NVIDIA CUDA, Apple MPS, Intel XPU, DirectML, Huawei
 
 実行には `uv` と Python 3.12 以上が要る。`install.py` は、`uv` が無ければ入れる。
 
+### 動作を確かめた環境
+
+実モデル(ruri-v3-310m)で、`evals/smoke-items.txt` の 17 件を `--k 3` で分けた結果を、環境ごとに比べた。
+
+| 環境 | デバイス | 結果 |
+|---|---|---|
+| macOS arm64(Apple Silicon) | cpu | 3 グループに分かれた(v0.4.0 で確認) |
+| macOS arm64 | mps(`--device mps`、`auto`) | CPU と、分け方も silhouette(平均 0.0778)も一致した(#26) |
+| Linux(GitHub Actions の ubuntu-latest) | cpu | 同じ分け方、同じ silhouette(#25) |
+| Windows(GitHub Actions の windows-latest) | cpu | 同じ分け方、同じ silhouette(#25) |
+| CUDA・Intel XPU・DirectML・Huawei NPU | — | 未確認(実機が無い)。CUDA が無い環境で `--device cuda` を指定すると、`error: デバイス 'cuda' は利用できません` で止まることだけ確かめた |
+
+Linux と Windows は、`.github/workflows/real-model.yml`(手動で実行する)で確かめた。モデルが約 1.2GB あるので、通常の CI では走らせない。
+
+実機を持っている人は、次で確かめて、結果を [#26](https://github.com/Mr-Kondo/mece-cluster-advisor/issues/26) に書いてほしい。`device` が指定どおりで、silhouette が 0.0778、分け方が `[0, 0, 0, 2, 0, 2, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2]` なら、他の環境と一致している(グループの番号の付け方は、環境によって入れ替わることがある)。
+
+```bash
+uv run scripts/mece_cluster.py evals/smoke-items.txt --k 3 --device cuda --out result.json
+python3 -c "import json; r = json.load(open('result.json', encoding='utf-8')); print(r['meta']['device'], r['meta']['silhouette_mean'], [i['cluster'] for i in r['items']])"
+```
+
 ## 結果を読む
 
 出力は JSON である。次の順に読む。
@@ -164,7 +188,7 @@ silhouette に合格ラインはない。正解が分かっている3テーマ18
 
 ### 自動で選ぶ k
 
-`--k auto` は、実際の話題の数より小さい k を選びやすい(9カテゴリのデータで、平均約4)。`meta.warnings` に、そのことが常に出る。目的から k が決まるなら、`--k` で指定して再実行する。評価の詳細は [k-selection.md](k-selection.md) にある。
+`--k auto` は、実際の話題の数からずれやすい(ニュース記事の9カテゴリでは小さく、平均約4。短い口語の発話の18分類では、1〜3大きかった)。`meta.warnings` に、そのことが常に出る。目的から k が決まるなら、`--k` で指定して再実行する。評価の詳細は [k-selection.md](k-selection.md) にある。
 
 指標の意味と実例は [references/output-schema.md](../references/output-schema.md) にある。
 

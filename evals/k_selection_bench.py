@@ -10,7 +10,8 @@
 # ///
 """k の選び方(自動)が、話題の数に追従するかを測る。
 
-    uv run evals/k_selection_bench.py
+    uv run evals/k_selection_bench.py                       # livedoor
+    uv run evals/k_selection_bench.py --dataset massive     # 口語の短文(JMTEB の MASSIVE ja、18 シナリオ)
 
 livedoor ニュースの 9 カテゴリから、m = 3・5・7・9 個のカテゴリを選んだ部分集合を作る。
 正解の話題数は m である。各基準が選ぶ k が m に近いか、その k での ARI が高いかを比べる。
@@ -18,6 +19,7 @@ livedoor ニュースの 9 カテゴリから、m = 3・5・7・9 個のカテ�
 """
 
 import argparse
+import subprocess
 import sys
 import warnings
 from pathlib import Path
@@ -28,7 +30,8 @@ from sklearn.metrics import adjusted_rand_score, calinski_harabasz_score, davies
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import dr_bench  # noqa: E402
-from mece_cluster import cosine_distance, silhouette  # noqa: E402
+import dr_extend  # noqa: E402
+from mece_cluster import DEFAULT_MODEL, cosine_distance, silhouette  # noqa: E402
 
 warnings.filterwarnings("ignore")
 K_RANGE = range(2, 13)
@@ -55,14 +58,30 @@ def main() -> None:
     ap.add_argument("--ms", nargs="+", type=int, default=[3, 5, 7, 9], help="正解の話題数")
     ap.add_argument("--subsets", type=int, default=4, help="m ごとのカテゴリの選び方の数")
     ap.add_argument("--seeds", nargs="+", type=int, default=[0, 1])
+    ap.add_argument("--dataset", choices=["livedoor", "massive"], default="livedoor")
+    ap.add_argument("--per-class", type=int, default=100, help="massive だけ。クラスごとの件数")
     args = ap.parse_args()
 
-    rows = dr_bench.load_rows()
-    dr_bench.ensure_embeddings(rows, args.settings, args.subs)
+    global K_RANGE
+    K_RANGE = range(2, max(args.ms) + 4)  # 既定の m(最大 9)では 2〜12 で、今までと同じ
+    if args.dataset == "livedoor":
+        rows = dr_bench.load_rows()
+        dr_bench.ensure_embeddings(rows, args.settings, args.subs)
+        load = lambda setting, sub: dr_bench.get_emb(rows, setting, sub, embed_ok=False)
+    else:
+        args.settings = ["-"]
+        ns = argparse.Namespace(dataset="massive", model=DEFAULT_MODEL, setting="-", per_class=args.per_class)
+        try:
+            for sub in args.subs:
+                dr_extend.get_emb(ns, sub, embed_ok=False)
+        except SystemExit:  # 埋め込みは別プロセスで先に作る
+            subprocess.run([sys.executable, str(Path(dr_extend.__file__)), "scale", "--embed-only", "--dataset", "massive",
+                            "--per-class", str(args.per_class), "--subs", *map(str, args.subs)], check=True)
+        load = lambda setting, sub: dr_extend.get_emb(ns, sub, embed_ok=False)
     results = []  # (setting, m, criterion, k, ari)
     for setting in args.settings:
         for sub in args.subs:
-            emb_all, y_all = dr_bench.get_emb(rows, setting, sub, embed_ok=False)
+            emb_all, y_all = load(setting, sub)
             cats = sorted(set(y_all))
             bad = [m for m in args.ms if not 2 <= m <= len(cats)]
             if bad:  # m がカテゴリ数を超えると、正解の数と実際の部分集合が食い違った表になる
