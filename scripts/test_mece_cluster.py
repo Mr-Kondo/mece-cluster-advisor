@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.12"
-# dependencies = ["numpy>=2.5.4", "scikit-learn>=1.9.1", "sudachipy>=0.7.0", "sudachidict-core>=20260723.1"]
+# dependencies = ["numpy>=2.5.4", "scikit-learn>=1.9.1", "sudachipy>=0.7.0", "sudachidict-core>=20261015"]
 # ///
 """mece_cluster.py の確認。モデルを使わず、合成した埋め込みで動く。
 

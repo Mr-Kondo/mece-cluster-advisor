@@ -4,11 +4,11 @@
 # dependencies = [
 #     "numpy>=2.5.4",
 #     "scikit-learn>=1.9.1",
-#     "sentence-transformers>=6.1.0",
-#     "transformers>=5.5.0",
-#     "torch>=2.13.0",
+#     "sentence-transformers>=6.2.0",
+#     "transformers>=5.22.0",
+#     "torch>=2.15.0",
 #     "sudachipy>=0.7.0",
-#     "sudachidict-core>=20260723.1",
+#     "sudachidict-core>=20261015",
 # ]
 # ///
 """項目の集合を埋め込みでクラスタリングし、MECE の判断材料を JSON で出す。
