@@ -47,6 +47,11 @@ LIMITS = [
     "silhouette に絶対的な合格ラインはない。同じデータで k を変えたときの相対比較に使う。",
     "件数が少ないと、k の選択と境界の判定は不安定になる。",
 ]
+# 自動選択の k は、話題の数より小さくなりやすい(docs/k-selection.md)。自動のときは、いつも知らせる
+AUTO_K_NOTE = (
+    "k は silhouette で自動選択した。この選び方は、実際の話題の数より小さい k を選びやすい"
+    "(検証では、9カテゴリのデータで平均約4)。目的から k が決まるなら、--k で指定して再実行する。"
+)
 
 # 「1.5倍」「-5℃」のような項目の先頭は消さない。ASCII の記号は後ろに空白があるときだけ箇条書きとみなす
 _BULLET = re.compile(r"^\s*(?:[-*+]\s+|[・●○■□]\s*|\d+[.)]\s+|\d+[．、]\s*)")
@@ -315,6 +320,8 @@ def build_result(
     warnings = []
     if k_scores is not None and k == max(k_scores):
         warnings.append(f"自動で選んだ k={k} が探索範囲の上限。k_selection を見て、--k-max を上げるか、目的から k を決める。")
+    if k_scores is not None:
+        warnings.append(AUTO_K_NOTE)
     if any(c["size"] == 1 for c in clusters):
         warnings.append("1件だけのグループがある。外れ値か、k が大きすぎる可能性がある。")
 

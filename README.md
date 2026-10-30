@@ -33,6 +33,8 @@ LLM は呼ばない。項目のテキストは外部へ送らない。通信は�
 | `evals/` | 発動精度の評価セットと、その読み方 |
 | `evals/dr_bench.py` | 次元削減の評価の再現スクリプト |
 | `docs/dimensionality-reduction.md` | 次元削減(PCA / UMAP / PaCMAP)の評価結果と、入れない理由 |
+| `evals/k_selection_bench.py` | 自動で選ぶ k の評価の再現スクリプト |
+| `docs/k-selection.md` | 自動で選ぶ k の評価結果と、警告を出す理由 |
 
 ## インストール
 
@@ -97,7 +99,7 @@ uv run scripts/test_mece_cluster.py   # モデル不要
 
 `SKILL.md` の description が発動するかの評価セットは [evals/](evals/) にある。実行方法、照合の修正、2026-10-12 の測定結果は [evals/README.md](evals/README.md) を見る。
 
-次元削減を入れるかどうかの評価は、[docs/dimensionality-reduction.md](docs/dimensionality-reduction.md) にある。
+次元削減を入れるかどうかの評価は、[docs/dimensionality-reduction.md](docs/dimensionality-reduction.md) にある。自動で選ぶ k の評価は、[docs/k-selection.md](docs/k-selection.md) にある。
 
 ## ライセンス
 

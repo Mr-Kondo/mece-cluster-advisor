@@ -61,7 +61,7 @@ uv run scripts/mece_cluster.py items.txt --out result.json
 
 [references/output-schema.md](references/output-schema.md) を読む。次の順に見る。
 
-1. `meta.warnings`: k の選択に根拠が弱い、1件だけのグループがある、など
+1. `meta.warnings`: k の選択に根拠が弱い、1件だけのグループがある、など。k を自動で選んだときは、k が小さめになりやすいという注意が常に出る
 2. `meta.k` と `meta.k_selection`
 3. `clusters`: キーワードと代表項目
 4. `boundary_pairs`: 境界の項目が集中するグループの組
@@ -78,6 +78,8 @@ uv run scripts/mece_cluster.py items.txt --out result.json
 4. 網羅性の穴の指摘
 
 ### 7. 必要なら k を変えて再実行する
+
+自動で選ぶ k は、実際の話題の数より小さくなりやすい(9カテゴリのデータで平均約4。[docs/k-selection.md](docs/k-selection.md))。目的から k が決まるなら、`--k` で指定して再実行する。
 
 `k_selection` の上位2つや、目的から決めた k と比べる。k を変えても、同じ項目が境界に残るなら、分け方ではなく、項目の性質や軸に原因がある。
 
@@ -109,7 +111,7 @@ uv run scripts/mece_cluster.py items.txt --out result.json
 ## 読み違えやすい点
 
 - silhouette に、合格ラインはない。正解が分かっている3テーマ18件を、k=3 で完全に分けても、平均は 0.18 だった。同じデータで、k を変えたときの比較に使う。
-- 境界の項目が多いときは、軸が複数混ざっているか、k が合っていない可能性がある。
+- 境界の項目が多いときは、軸が複数混ざっているか、k が合っていない可能性がある。自動で選んだ k は小さめになりやすいので、境界の項目が多いときは特に、k を増やして確かめる。
 - 網羅性は、ノイズ率などの数値にしない。目的から期待される観点を挙げて、確かめる。
 - 項目の本文は、要約も修正もしない。引用するときは、原文のままにする。
 
