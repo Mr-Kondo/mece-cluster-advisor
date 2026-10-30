@@ -61,7 +61,7 @@ uv run scripts/mece_cluster.py items.txt --out result.json
 
 [references/output-schema.md](references/output-schema.md) を読む。次の順に見る。
 
-1. `meta.warnings`: k の選択に根拠が弱い、1件だけのグループがある、など。k を自動で選んだときは、k が小さめになりやすいという注意が常に出る
+1. `meta.warnings`: k の選択に根拠が弱い、1件だけのグループがある、など。k を自動で選んだときは、k が話題の数からずれやすいという注意が常に出る
 2. `meta.k` と `meta.k_selection`
 3. `clusters`: キーワードと代表項目
 4. `boundary_pairs`: 境界の項目が集中するグループの組
@@ -79,7 +79,7 @@ uv run scripts/mece_cluster.py items.txt --out result.json
 
 ### 7. 必要なら k を変えて再実行する
 
-自動で選ぶ k は、実際の話題の数より小さくなりやすい(9カテゴリのデータで平均約4。[docs/k-selection.md](docs/k-selection.md))。目的から k が決まるなら、`--k` で指定して再実行する。
+自動で選ぶ k は、実際の話題の数からずれやすい(ニュース記事の9カテゴリでは小さく、平均約4。短い口語の発話の18分類では、1〜3大きかった。[docs/k-selection.md](docs/k-selection.md))。目的から k が決まるなら、`--k` で指定して再実行する。
 
 `k_selection` の上位2つや、目的から決めた k と比べる。k を変えても、同じ項目が境界に残るなら、分け方ではなく、項目の性質や軸に原因がある。
 
@@ -119,7 +119,7 @@ uv run scripts/mece_cluster.py items.txt --out result.json
 
 ホストのモデルをそのまま使う。Claude Code と Codex で動かしているモデルである。特定のモデル名には依存しない。必要な能力は、日本語の指示追従、JSON の読解、数十から数百の項目を保持できる文脈の長さである。
 
-目安として、グループの命名は軽量なモデルでも足りる。排他性の判定と網羅性の指摘は、推論力の高いモデルのほうが向く。この目安は、ベンチマークで検証していない。
+目安として、グループの命名は軽量なモデルでも足りる。排他性の判定と網羅性の指摘は、推論力の高いモデルのほうが向く。この目安は、小さな比較(3 モデル × 3 場面)では、軽量なモデルも仕込んだ重なりと抜けを見つけ、差が出なかった。難しい場面では検証していない([docs/model-choice.md](docs/model-choice.md))。
 
 ## 版と実行環境
 

@@ -40,6 +40,10 @@ LLM は呼ばない。項目のテキストは外部へ送らない。通信は�
 | `docs/dimensionality-reduction.md` | 次元削減(PCA / UMAP / PaCMAP / t-SNE)の評価結果と、入れない理由 |
 | `evals/k_selection_bench.py` | 自動で選ぶ k の評価の再現スクリプト |
 | `docs/k-selection.md` | 自動で選ぶ k の評価結果と、警告を出す理由 |
+| `evals/dr_extend.py` | 次元削減の評価を、件数・モデル・口語の短文・t-SNE の調整へ広げる再現スクリプト |
+| `evals/model-choice/` | モデルの選び方の目安を確かめる比較(項目と実行スクリプト) |
+| `docs/model-choice.md` | モデルの選び方の評価結果 |
+| `.github/workflows/real-model.yml` | 実モデルを Linux・Windows で動かす手動の検査 |
 
 ## インストール
 
