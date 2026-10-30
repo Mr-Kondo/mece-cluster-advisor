@@ -121,6 +121,38 @@ def test_resolve_device_invalid():
         raise AssertionError("invalid device should trigger SystemExit")
 
 
+def test_resolve_device_unavailable_accelerator():
+    """torch を差し替えて、利用できないアクセラレータの明示を弾き、使えるものと cpu は通す(torch の有無に依存しない)。"""
+    import sys
+    from types import SimpleNamespace as NS
+
+    def fake_torch(cuda: bool, mps: bool, xpu: bool):
+        return NS(
+            device=lambda s: NS(type=s.split(":")[0], index=int(s.split(":")[1]) if ":" in s else None),
+            cuda=NS(is_available=lambda: cuda),
+            xpu=NS(is_available=lambda: xpu),
+            backends=NS(mps=NS(is_available=lambda: mps)),
+        )
+
+    saved = sys.modules.get("torch")
+    try:
+        sys.modules["torch"] = fake_torch(cuda=False, mps=False, xpu=True)
+        for pref in ("cuda", "cuda:0", "mps"):
+            try:
+                resolve_device(pref)
+            except SystemExit as e:
+                assert "利用できません" in str(e), pref
+            else:
+                raise AssertionError(f"{pref} should trigger SystemExit")
+        assert resolve_device("xpu")[1] == "xpu"  # 使えるものは通す
+        assert resolve_device("cpu")[1] == "cpu"
+    finally:
+        if saved is None:
+            sys.modules.pop("torch", None)
+        else:
+            sys.modules["torch"] = saved
+
+
 def test_build_result_includes_device_in_meta():
     res = build_result(
         TEXTS,
