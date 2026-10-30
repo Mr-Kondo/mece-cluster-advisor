@@ -36,6 +36,7 @@ jobs:
           target="$HOME/.claude/skills/mece-cluster-advisor"
           mkdir -p .claude .codex .serena .venv feedback   # 手元に置かれがちなダミーを作り、コピーされないことを確かめる
           touch .claude/x .codex/x .serena/x .venv/x feedback/x CLAUDE.local.md AGENTS.local.md
+          touch .env secrets.txt scripts/untracked-note.txt   # 除外の名前に無い、未追跡の私的ファイル
           uv run install.py --no-fetch
           test -f "$target/SKILL.md"
           test -f "$target/scripts/mece_cluster.py"
@@ -46,9 +47,26 @@ jobs:
           test ! -e "$target/feedback"
           test ! -e "$target/CLAUDE.local.md"  # 私的な指示ファイルも持ち込まない
           test ! -e "$target/AGENTS.local.md"
+          test ! -e "$target/.env"             # 未追跡のファイルは、名前によらず持ち込まない
+          test ! -e "$target/secrets.txt"
+          test ! -e "$target/scripts/untracked-note.txt"
+          test -f "$target/scripts/test_skill_info.py"  # 追跡しているファイルは取りこぼさない
+          test -f "$target/docs/usage.md"
           test ! -e "$target/__pycache__"
           test ! -e "$target/.gitignore"
           test ! -e "$target/.git"
+      - name: Git の管理外(zip の展開先)からも入れられる
+        shell: bash
+        run: |
+          set -eu
+          dir="$(mktemp -d)"
+          git archive HEAD | tar -x -C "$dir"
+          test ! -e "$dir/.git"
+          rm -rf "$HOME/.claude/skills/mece-cluster-advisor"   # 前のインストール先を使い回さない
+          (cd "$dir" && uv run install.py --target claude --no-fetch)
+          test -f "$HOME/.claude/skills/mece-cluster-advisor/SKILL.md"
+          test -f "$HOME/.claude/skills/mece-cluster-advisor/scripts/mece_cluster.py"
+          test -f "$HOME/.claude/skills/mece-cluster-advisor/docs/usage.md"
       - name: インストール元と同じ場所からは実行できない
         shell: bash
         run: |

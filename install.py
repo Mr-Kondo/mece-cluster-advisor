@@ -16,6 +16,7 @@ uv がなければ、公式のインストーラで入れてから続ける。Ma
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import os
 import shutil
 import subprocess
@@ -25,6 +26,8 @@ from pathlib import Path
 
 SKILL_NAME = "mece-cluster-advisor"
 TARGETS = {"claude": ".claude/skills", "codex": ".agents/skills"}  # ホームからの相対
+# Git の作業ツリーからは、追跡しているファイルだけをコピーする(未追跡の私的ファイルを持ち込まない)。
+# 追跡できない場所(zip の展開先など)では、次の名前を除いてコピーする。
 # 実行環境の設定(トークンを含む)、仮想環境、検証用の出力、キャッシュ、リポジトリの管理ファイル、
 # 手元の私的な指示ファイル(CLAUDE.local.md など)はコピーしない
 EXCLUDE = (".git", ".gitignore", ".claude", ".codex", ".serena", ".venv", "feedback", ".DS_Store", "__pycache__", "*.local.md")
@@ -38,6 +41,21 @@ for _stream in (sys.stdout, sys.stderr):
 
 
 # ---------------------------------------------------------------- インストール
+def tracked_files(source: Path) -> list[Path] | None:
+    """Git の作業ツリーなら、追跡しているファイルの一覧を返す。Git の管理外なら None(除外の名前で写す)。"""
+    if not (source / ".git").exists():  # 別のリポジトリの中に展開された zip の中身を、取り違えない
+        return None
+    try:
+        out = subprocess.run(["git", "-C", str(source), "ls-files", "-z"], capture_output=True, check=True).stdout
+    except (OSError, subprocess.CalledProcessError) as e:
+        # 名前の除外に戻すと、未追跡の私的ファイルを持ち込みうる。黙って戻さず止める
+        raise SystemExit(f"error: git で追跡ファイルを調べられない({e})。git を入れるか、Release の zip から入れる。")
+    files = [Path(n) for n in out.decode("utf-8", errors="replace").split("\0") if n]
+    if Path("SKILL.md") not in files:
+        raise SystemExit("error: SKILL.md が Git で追跡されていない。コミットしてから実行するか、Release の zip から入れる。")
+    return files
+
+
 def install(source: Path, target: Path) -> None:
     """source の中身を target へ写す。既にあれば消して作り直す(更新)。"""
     if source == target.resolve():
@@ -47,7 +65,15 @@ def install(source: Path, target: Path) -> None:
     if target.is_dir():
         shutil.rmtree(target)  # 更新で消えたファイルを残さない
     target.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(source, target, ignore=shutil.ignore_patterns(*EXCLUDE))
+    files = tracked_files(source)
+    if files is None:
+        shutil.copytree(source, target, ignore=shutil.ignore_patterns(*EXCLUDE))
+    else:
+        for rel in files:
+            if any(fnmatch.fnmatch(part, pat) for part in rel.parts for pat in EXCLUDE) or not (source / rel).is_file():
+                continue
+            (target / rel).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source / rel, target / rel)
     print(f"installed: {target}")
 
 

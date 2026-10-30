@@ -160,10 +160,15 @@ def resolve_device(device_pref: str | None = "auto") -> tuple[object, str]:
     # 明示指定 (cuda, cuda:0, mps, xpu, npu, cpu 等)
     try:
         dev = torch.device(pref)
-        display = dev.type if dev.index is None else f"{dev.type}:{dev.index}"
-        return pref, display
     except Exception as e:
         raise SystemExit(f"error: 不正なデバイス指定 '{device_pref}': {e}")
+    # 使えないアクセラレータは、モデルの読み込み中に PyTorch の例外で落ちる前に、ここで知らせる
+    backend = getattr(torch.backends, "mps", None) if dev.type == "mps" else getattr(torch, dev.type, None)
+    is_available = getattr(backend, "is_available", None)
+    if dev.type != "cpu" and callable(is_available) and not is_available():
+        raise SystemExit(f"error: デバイス '{device_pref}' は利用できません。--device auto か cpu を指定する。")
+    display = dev.type if dev.index is None else f"{dev.type}:{dev.index}"
+    return pref, display
 
 
 def embedding_prefix(model: str, override: str | None) -> str:
