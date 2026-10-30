@@ -175,12 +175,16 @@ def evaluate(x: np.ndarray, dist: np.ndarray, y: np.ndarray, make_labels) -> dic
 
 def ensure_embeddings(rows: list[dict], settings: list[str], subs: list[int]) -> None:
     """未計算の埋め込みを、別プロセスで先に計算する。"""
-    if all(cache_valid(rows, s, b) for s in settings for b in subs):
-        return
-    subprocess.run(
-        [sys.executable, str(Path(__file__).resolve()), "--embed-only", "--settings", *settings, "--subs", *map(str, subs)],
-        check=True,
-    )
+    # 1回目の計算でモデルを取得し直すと、先に再利用した分のリビジョンが古くなる。そのため、最大2回まで作り直す。
+    for _ in range(2):
+        if all(cache_valid(rows, s, b) for s in settings for b in subs):
+            return
+        subprocess.run(
+            [sys.executable, str(Path(__file__).resolve()), "--embed-only", "--settings", *settings, "--subs", *map(str, subs)],
+            check=True,
+        )
+    if not all(cache_valid(rows, s, b) for s in settings for b in subs):
+        raise SystemExit("error: 埋め込みを作り直しても、キャッシュが有効にならない。")
 
 
 def main() -> None:
