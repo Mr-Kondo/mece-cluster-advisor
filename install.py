@@ -25,8 +25,8 @@ from pathlib import Path
 
 SKILL_NAME = "mece-cluster-advisor"
 TARGETS = {"claude": ".claude/skills", "codex": ".agents/skills"}  # ホームからの相対
-# 実行環境の設定(トークンを含む)、キャッシュ、リポジトリの管理ファイルはコピーしない
-EXCLUDE = (".git", ".gitignore", ".claude", ".DS_Store", "__pycache__")
+# 実行環境の設定(トークンを含む)、仮想環境、検証用の出力、キャッシュ、リポジトリの管理ファイルはコピーしない
+EXCLUDE = (".git", ".gitignore", ".claude", ".codex", ".serena", ".venv", "feedback", ".DS_Store", "__pycache__")
 MODEL = "cl-nagoya/ruri-v3-310m"  # scripts/mece_cluster.py の既定と同じ
 UV_URL = "https://docs.astral.sh/uv/"
 

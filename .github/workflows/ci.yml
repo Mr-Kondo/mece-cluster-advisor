@@ -30,10 +30,16 @@ jobs:
         run: |
           set -eu
           target="$HOME/.claude/skills/mece-cluster-advisor"
+          mkdir -p .claude .codex .serena .venv feedback   # 手元に置かれがちなダミーを作り、コピーされないことを確かめる
+          touch .claude/x .codex/x .serena/x .venv/x feedback/x
           uv run install.py --no-fetch
           test -f "$target/SKILL.md"
           test -f "$target/scripts/mece_cluster.py"
           test ! -e "$target/.claude"         # 実行環境の設定は持ち込まない
+          test ! -e "$target/.codex"
+          test ! -e "$target/.serena"
+          test ! -e "$target/.venv"
+          test ! -e "$target/feedback"
           test ! -e "$target/__pycache__"
           test ! -e "$target/.gitignore"
           test ! -e "$target/.git"
