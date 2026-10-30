@@ -20,6 +20,8 @@ LLM は呼ばない。項目のテキストは外部へ送らない。通信は�
 
 ## 構成
 
+### スキル本体と実行
+
 | パス | 内容 |
 |---|---|
 | `SKILL.md` | スキル本体。手順、件数による分岐、報告の形 |
@@ -28,22 +30,37 @@ LLM は呼ばない。項目のテキストは外部へ送らない。通信は�
 | `scripts/mece_cluster.py` | クラスタリング本体(依存はスクリプト内の PEP 723 ブロック) |
 | `scripts/test_mece_cluster.py` | モデルを使わない確認(合成した埋め込みで動く) |
 | `scripts/skill_info.py` | 版と実行環境(OS・アプリ・モデル・日付)を出す。標準ライブラリだけ、読み取り専用 |
-| `scripts/test_skill_info.py` | 上の確認 |
+| `scripts/test_skill_info.py` | `skill_info.py` の確認 |
+| `install.py` | インストール(更新)、実行時の前提(uv とモデル)の取得、アンインストール |
+
+### リリースと CI
+
+| パス | 内容 |
+|---|---|
 | `VERSION` | スキルの版。`main` で変わると、Actions がタグと Release を作る |
 | `.github/workflows/release.yml` | `VERSION` が変わったときに、タグ・zip・sha256・Release を作る |
 | `docs/release-notes/` | リリースごとのノート(`v<版>.md`)。版を上げる PR に入れる |
-| `install.py` | インストール(更新)、実行時の前提(uv とモデル)の取得、アンインストール |
 | `.github/workflows/ci.yml` | `install.py` を Linux と Windows で動かす確認 |
-| `docs/usage.md` | 操作方法の詳細(インストール、オプション、結果の読み方) |
-| `evals/` | 発動精度の評価セットと、その読み方 |
-| `evals/dr_bench.py` | 次元削減の評価の再現スクリプト |
-| `docs/dimensionality-reduction.md` | 次元削減(PCA / UMAP / PaCMAP / t-SNE)の評価結果と、入れない理由 |
-| `evals/k_selection_bench.py` | 自動で選ぶ k の評価の再現スクリプト |
-| `docs/k-selection.md` | 自動で選ぶ k の評価結果と、警告を出す理由 |
-| `evals/dr_extend.py` | 次元削減の評価を、件数・モデル・口語の短文・t-SNE の調整へ広げる再現スクリプト |
-| `evals/model-choice/` | モデルの選び方の目安を確かめる比較(項目と実行スクリプト) |
-| `docs/model-choice.md` | モデルの選び方の評価結果 |
 | `.github/workflows/real-model.yml` | 実モデルを Linux・Windows で動かす手動の検査 |
+
+### 文書
+
+| パス | 内容 |
+|---|---|
+| `docs/usage.md` | 操作方法の詳細(インストール、オプション、結果の読み方) |
+| `docs/dimensionality-reduction.md` | 次元削減(PCA / UMAP / PaCMAP / t-SNE)の評価結果と、入れない理由 |
+| `docs/k-selection.md` | 自動で選ぶ k の評価結果と、警告を出す理由 |
+| `docs/model-choice.md` | モデルの選び方の評価結果 |
+
+### 評価(`evals/`)
+
+| パス | 内容 |
+|---|---|
+| `README.md`、`trigger-eval*.json` | 発動精度の評価セットと、その読み方 |
+| `smoke-items.txt` | 実モデルの確認に使う17件(`real-model.yml` と、`docs/usage.md` の確認表) |
+| `dr_bench.py`、`dr_extend.py` | 次元削減の評価の再現スクリプト。`dr_extend.py` は、件数・モデル・口語の短文・t-SNE の調整へ広げたもの |
+| `k_selection_bench.py` | 自動で選ぶ k の評価の再現スクリプト |
+| `model-choice/` | モデルの選び方の目安を確かめる比較(項目と実行スクリプト) |
 
 ## インストール
 
@@ -100,16 +117,14 @@ uv run scripts/test_mece_cluster.py   # モデル不要
 python3 scripts/test_skill_info.py    # 版と実行環境の出力
 ```
 
-`install.py` は GitHub Actions で、Linux(ubuntu-latest)と Windows(windows-latest)の両方で動かして確かめている。確かめている内容は次のとおり。
+`install.py` は、GitHub Actions で Linux(ubuntu-latest)と Windows(windows-latest)の両方で確かめている。確かめる内容は [docs/usage.md](docs/usage.md) の「確認」にある。
 
-- `uv run install.py` でインストールできること
-- 除外対象(`.claude/` など)が入らないこと
-- インストール元と同じ場所からの実行が拒否されること
-- アンインストールできること
+評価の入口は次のとおり。
 
-`SKILL.md` の description が発動するかの評価セットは [evals/](evals/) にある。実行方法、照合の修正、2026-10-12 の測定結果は [evals/README.md](evals/README.md) を見る。
-
-次元削減を入れるかどうかの評価は、[docs/dimensionality-reduction.md](docs/dimensionality-reduction.md) にある。自動で選ぶ k の評価は、[docs/k-selection.md](docs/k-selection.md) にある。
+- `SKILL.md` の description が発動するか: [evals/README.md](evals/README.md)(実行方法、照合の修正、2026-10-12 の測定結果)
+- 次元削減を入れない理由: [docs/dimensionality-reduction.md](docs/dimensionality-reduction.md)
+- 自動で選ぶ k の評価: [docs/k-selection.md](docs/k-selection.md)
+- モデルの選び方の評価: [docs/model-choice.md](docs/model-choice.md)
 
 ## ライセンス
 

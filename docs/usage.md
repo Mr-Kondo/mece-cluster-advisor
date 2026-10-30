@@ -75,7 +75,9 @@ Windows では `python install.py` を使う。
 
 ### コピーされないもの
 
-- Git の作業ツリー(リポジトリ直下)から実行したとき: Git が追跡しているファイルだけをコピーする。未追跡のファイル(`.env`、`CLAUDE.local.md`、メモなど、名前によらない)は入らない。さらに、追跡していても `.git`、`.gitignore`、`.claude/`、`.codex/`、`.serena/`、`.venv/`、`feedback/`、`__pycache__/`、`*.local.md` は入れない。
+- Git の作業ツリー(リポジトリ直下)から実行したとき:
+  - Git が追跡しているファイルだけをコピーする。未追跡のファイル(`.env`、`CLAUDE.local.md`、メモなど)は、名前によらず入らない。
+  - 追跡していても、次のものは入れない。`.git`、`.gitignore`、`.claude/`、`.codex/`、`.serena/`、`.venv/`、`feedback/`、`__pycache__/`、`*.local.md`。
 - Release の zip の展開先など、Git の管理外から実行したとき: 上の名前のものを除いて、すべてコピーする。zip には追跡しているファイルしか入っていないので、結果は同じになる。
 - `.git` があるのに `git` が使えないときは、名前の除外に戻さず、止まる。`git` を入れるか、zip から入れる。
 
@@ -97,7 +99,9 @@ Windows では `python install.py` を使う。
 
 Codex は、スキル一覧の description を、スキルの数に応じて切る。スキルが多い環境では、前方の十数文字しか残らない。この Mac(Codex 0.164.0、スキル 200 件超)では、このスキルは `項目の集合(アイデア、要件、` までしか見えなかった。
 
-`evals/trigger-eval.json` の 24 件を `codex exec` で流した結果は、肯定 12 件のうち 10 件で発動し、否定 12 件では発動しなかった。外れたのは、「MECE」と書かれていない依頼(問い合わせ件名の分類の切り口の提案、タイトル案のグルーピング)だった。名前と依頼文の語に頼って発動しているので、スキルが多い環境では、依頼に「MECE」「分類」などを入れると確実になる。description の前方を「MECE分類・グルーピング・…」に書き換える案も試したが、発動は肯定 8/12 と 7/12(2 回)で、現状の 10/12 より下がったので採用しなかった(否定 12 件は 0 件のまま。[#36](https://github.com/Mr-Kondo/mece-cluster-advisor/issues/36))。切られた後の見え方は変わったが、発動の手がかりになったのは、前方の語ではなかった。
+`evals/trigger-eval.json` の 24 件を `codex exec` で流した結果は、肯定 12 件のうち 10 件で発動し、否定 12 件では発動しなかった。外れたのは、「MECE」と書かれていない依頼(問い合わせ件名の分類の切り口の提案、タイトル案のグルーピング)だった。名前と依頼文の語に頼って発動しているので、スキルが多い環境では、依頼に「MECE」「分類」などを入れると確実になる。
+
+description の前方を「MECE分類・グルーピング・…」に書き換える案も試したが、採用しなかった。発動は肯定 8/12 と 7/12(2 回)で、現状の 10/12 より下がった。否定 12 件は 0 件のままだった([#36](https://github.com/Mr-Kondo/mece-cluster-advisor/issues/36))。切られた後の見え方は変わったが、発動の手がかりになったのは、前方の語ではなかった。
 
 ## スキルとして使う
 
@@ -136,18 +140,22 @@ uv run scripts/mece_cluster.py items.csv --column comment --k 5
 | `--k-max` | `auto` で試す k の上限(既定 8) |
 | `--model` / `--prefix` | 埋め込みモデルと入力の接頭辞(既定 `cl-nagoya/ruri-v3-310m`。接頭辞は省略するとモデル名から決める) |
 | `--seed` | 乱数の種(既定 42)。同じ入力と設定なら同じ結果になる |
-| `--device` | 計算デバイス(既定 `auto`)。CUDA, Apple MPS, Intel XPU, DirectML(AMD/Intel/Windows), Huawei NPU, CPU 等を自動で選ぶ |
+| `--device` | 計算デバイス(既定 `auto`)。下の「計算デバイス」を見る |
 | `--out` | JSON の保存先。省略すると標準出力に出す |
 
 ### 初回と2回目以降
 
 初回は、埋め込みモデル(約1.2GB)とライブラリを取得する。2回目以降はキャッシュを使う。
 
-GPU やアクセラレータ(NVIDIA CUDA, Apple MPS, Intel XPU, DirectML, Huawei NPU 等)があれば自動で使い、無ければ CPU を使う。`--device` で明示的に指定することもできる。
+### 計算デバイス
 
-### 実行環境
+`--device auto`(既定)は、次の順に使えるものを選び、どれも無ければ CPU を使う。
 
-実行には `uv` と Python 3.12 以上が要る。`install.py` は、`uv` が無ければ入れる。
+CUDA、Apple MPS、Intel XPU、DirectML(Windows の AMD・Intel。`torch-directml` が要る)、Huawei NPU、Intel HPU、`torch.accelerator` が返すデバイス
+
+- `auto` で選んだデバイスで、モデルの読み込みか埋め込みが失敗したら、警告を出して CPU でやり直す。`OSError`(モデルの取得の失敗など)は、やり直さずに止める。
+- `auto` が、最初から CPU を選んだときは、注意を出すことがある。`nvidia-smi` か `rocm-smi` があれば、「GPU 対応の torch を入れる」と案内する。どちらも無く、Windows なら、DirectML を案内する。上の失敗から CPU に戻ったときは、この注意は出ない。
+- `--device cuda` のように明示して、そのデバイスの種類が使えないときは、`error: デバイス 'cuda' は利用できません` で止まる。`--device auto` か `cpu` を指定する。使える種類でも、存在しない番号を指定したときなどは、別のエラーで止まる。どちらも CPU には戻さない。
 
 ### 動作を確かめた環境
 
@@ -163,7 +171,10 @@ GPU やアクセラレータ(NVIDIA CUDA, Apple MPS, Intel XPU, DirectML, Huawei
 
 Linux と Windows は、`.github/workflows/real-model.yml`(手動で実行する)で確かめた。モデルが約 1.2GB あるので、通常の CI では走らせない。
 
-実機を持っている人は、次で確かめて、結果を [#26](https://github.com/Mr-Kondo/mece-cluster-advisor/issues/26) に書いてほしい。`device` が指定どおりで、silhouette が 0.0778、分け方が `[0, 0, 0, 2, 0, 2, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2]` なら、他の環境と一致している(グループの番号の付け方は、環境によって入れ替わることがある)。
+実機を持っている人は、次で確かめて、結果を [#26](https://github.com/Mr-Kondo/mece-cluster-advisor/issues/26) に書いてほしい。他の環境と一致している条件は、次の2つである。グループの番号の付け方は、環境によって入れ替わることがある。
+
+- `device` が指定どおりである。
+- silhouette が 0.0778 で、分け方が `[0, 0, 0, 2, 0, 2, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2]` である。
 
 ```bash
 uv run scripts/mece_cluster.py evals/smoke-items.txt --k 3 --device cuda --out result.json
@@ -216,8 +227,9 @@ python3 scripts/test_skill_info.py
 `install.py` は GitHub Actions で、Linux(ubuntu-latest)と Windows(windows-latest)の両方で動かして確かめている。確かめている内容は次のとおり。
 
 - `uv run install.py` でインストールできること
-- 除外対象(`.claude/` など)が入らないこと
+- 除外対象(`.claude/` など)と、追跡していないファイルが入らないこと
+- Git の管理外(zip の展開先)からも入れられること
 - インストール元と同じ場所からの実行が拒否されること
-- アンインストールできること
+- アンインストールと再インストール、`--purge` ができること
 
 発動精度の評価は [evals/](../evals/) にある。実行方法と測定結果は [evals/README.md](../evals/README.md) を見る。
