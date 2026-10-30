@@ -10,7 +10,7 @@
 #     "pyarrow",
 # ]
 # ///
-"""次元削減(PCA / UMAP / PaCMAP)が、日本語の話題クラスタリングを良くするかを測る。
+"""次元削減(PCA / UMAP / PaCMAP / t-SNE)が、日本語の話題クラスタリングを良くするかを測る。
 
     uv run evals/dr_bench.py                                   # 既定: 2設定 × 2サンプル × 5シード
     uv run evals/dr_bench.py --settings title --subs 0 --seeds 0   # 動作確認(短い)
@@ -45,6 +45,7 @@ import numpy as np
 import pyarrow.parquet as pq
 from sklearn.cluster import HDBSCAN, AgglomerativeClustering, KMeans
 from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -156,6 +157,11 @@ def build_methods() -> dict:
             n_components=d, n_neighbors=15, min_dist=0.0, metric="cosine", random_state=s
         ).fit_transform(e)
         methods[f"pacmap{d}"] = lambda e, s, d=d: pacmap.PaCMAP(n_components=d, random_state=s).fit_transform(e)
+    # t-SNE は scikit-learn のもの(Barnes-Hut 法のため 3 次元まで)。perplexity は 30 を基準に、2 次元で 15 と 50 も見る
+    for name, d, p in (("tsne2", 2, 30), ("tsne3", 3, 30), ("tsne2p15", 2, 15), ("tsne2p50", 2, 50)):
+        methods[name] = lambda e, s, d=d, p=p: TSNE(
+            n_components=d, perplexity=p, metric="cosine", init="pca", random_state=s
+        ).fit_transform(e)
     return methods
 
 
@@ -255,14 +261,14 @@ def main() -> None:
     key = lambda r: (r["setting"], r["sub"], r["seed"])
     raw = {key(r): r for r in records if r["method"] == "raw"}
     print("\n## 生の埋め込みとの差(ARI, k=9。平均 ± 標準誤差 [上回った組/全体])")
-    for m in ("pca32", "pca64", "pca64w", "umap5", "umap10", "umap15", "pacmap5", "pacmap10", "pacmap15"):
+    for m in ("pca32", "pca64", "pca64w", "umap5", "umap10", "umap15", "pacmap5", "pacmap10", "pacmap15", "tsne2", "tsne3", "tsne2p15", "tsne2p50"):
         d = [r["ari9"] - raw[key(r)]["ari9"] for r in records if r["method"] == m and key(r) in raw]
         if len(d) > 1:
             print(f"{m:<9} {np.mean(d):+.3f} ± {np.std(d, ddof=1) / np.sqrt(len(d)):.3f}  [{sum(x > 0 for x in d)}/{len(d)}]")
     print("(標準誤差は、組を独立とみなした値。同じサンプルを共有する組は独立でないので、不確かさは小さく見える。目安として読む)")
 
     print("\n## 生の埋め込みとの差(ARI, k=9。設定・サンプル別。シードの平均)")
-    for m in ("pca32", "umap10", "pacmap10"):
+    for m in ("pca32", "umap10", "pacmap10", "tsne2", "tsne3"):
         cells = []
         for setting in args.settings:
             for sub in args.subs:
@@ -285,6 +291,7 @@ def main() -> None:
     }
     (OUT / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"\nmodel revision: {meta['revision']}  (meta.json に版と条件を保存)")
+    print(f"TSNE.transform の有無(新しい項目を後から変換できるか): {hasattr(TSNE, 'transform')}")
 
 
 if __name__ == "__main__":
