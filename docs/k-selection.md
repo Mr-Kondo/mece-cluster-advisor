@@ -89,7 +89,8 @@ JMTEB の `massive_scenario_classification`(MASSIVE の日本語。CC BY 4.0。�
 
 ## 対応
 
-- 自動で k を選んだとき、`meta.warnings` に「k は silhouette で自動選択した。実際の話題の数からずれやすい(ニュース記事では小さく、口語の発話では大きかった)。目的から k が決まるなら、`--k` で指定して再実行する」を出す。
+- 自動で k を選んだとき、`meta.warnings` に、次の文を出す。
+  > k は silhouette で自動選択した。この選び方は、実際の話題の数からずれやすい(検証では、ニュース記事の9カテゴリで小さく平均約4、短い口語の発話の18分類で1〜3大きかった)。目的から k が決まるなら、--k で指定して再実行する。
 - `SKILL.md` の「読み違えやすい点」と、`references/output-schema.md` の `warnings` の説明に、同じことを書いた。
 
 ## 注意

@@ -1,16 +1,26 @@
 # 次元削減の評価
 
-埋め込みを KMeans にかける前に、次元削減(PCA・UMAP・PaCMAP・t-SNE)を挟むと、日本語の話題のグルーピングは良くなるかを測った。結論は「今は入れない」である。t-SNE は、v0.4.0 の後に追加で測った([Issue #21](https://github.com/Mr-Kondo/mece-cluster-advisor/issues/21))。その後、t-SNE の調整と乱数([#28](https://github.com/Mr-Kondo/mece-cluster-advisor/issues/28))と、件数・モデル・口語の短文への拡張([#29](https://github.com/Mr-Kondo/mece-cluster-advisor/issues/29))を測った。
+埋め込みを KMeans にかける前に、次元削減(PCA・UMAP・PaCMAP・t-SNE)を挟むと、日本語の話題のグルーピングは良くなるかを測った。結論は「入れない」である。
+
+評価は、次の順に広げた。
+
+- v0.4.0: PCA・UMAP・PaCMAP
+- [#21](https://github.com/Mr-Kondo/mece-cluster-advisor/issues/21): t-SNE を追加
+- [#28](https://github.com/Mr-Kondo/mece-cluster-advisor/issues/28): t-SNE の調整と乱数
+- [#29](https://github.com/Mr-Kondo/mece-cluster-advisor/issues/29): 件数・モデル・口語の短文
+- [#39](https://github.com/Mr-Kondo/mece-cluster-advisor/issues/39): opt-in の `--reduce` を入れるかの判断
 
 ## 結論
+
+**次元削減は入れない。** 既定のモデルでは利得が小さく、利得が出た条件でも、より大きいモデルの生の埋め込みを上回らなかった。依存は重く、macOS では torch と同じプロセスで落ちた。
+
+測った順に、結果を並べる。
 
 - UMAP は、生の埋め込みよりわずかに良い。ARI で約 +0.02、NMI で約 +0.024 で、20 組中 18〜20 組で上回った。
 - PaCMAP と PCA は、生の埋め込みと差が見分けられなかった。PCA の白色化は、大きく悪化した(ARI が約 −0.19)。
 - t-SNE は、2 次元(perplexity 30)で差が見分けられなかった(ARI で −0.001)。向きも設定で割れた(`title` で下がり、`lead` で上がった)。3 次元と perplexity 15 では、悪化した(ARI で −0.05、−0.04)。UMAP を上回る条件は、見つからなかった。
-- 差が小さいことに加え、UMAP と PaCMAP は依存が重く、このスキルの構成では macOS で落ちた。見合わないので、入れない。
-
+- 差が小さいことに加え、UMAP と PaCMAP は依存が重く、このスキルの構成では macOS で落ちた。見合わない。
 - 追加の評価(下の「追加の評価」)でも、既定のモデル(ruri-v3-310m)では、次元削減の利得は ARI で +0.03 以下だった(UMAP。口語の短文では t-SNE が +0.049)。別のモデル(multilingual-e5-small)では、UMAP が +0.054〜+0.090 になり、「入れ直す条件」(ARI で 0.05 以上)を満たした。ただし、このスキルの既定ではない。
-
 - 「入れ直す条件」が満たされたため、opt-in の `--reduce` を入れるかを検討した([#39](https://github.com/Mr-Kondo/mece-cluster-advisor/issues/39))。入れない。利得が出たモデル(multilingual-e5-small)に UMAP を足しても、既定のモデルの生の埋め込みと同じか下回った。理由は「入れるかの判断」に書いた。
 
 現状(次元削減なしで、生の埋め込みを KMeans にかける)を維持する。

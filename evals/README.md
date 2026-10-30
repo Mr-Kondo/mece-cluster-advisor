@@ -10,6 +10,17 @@
 
 肯定側は「30件以上あって、MECE に分けたい・重複や抜けを確かめたい」依頼である。否定側は、近いが別の領域の依頼を置いている。文章の推敲、表の集計、MECE の説明、コードの修正、3案の比較、議事録の要約、タイトル案の生成である。
 
+## このフォルダのほかのファイル
+
+発動精度の評価セット以外のファイルもある。一覧は [README.md](../README.md) の「構成」にある。
+
+| ファイル | 内容 | 結果の文書 |
+|---|---|---|
+| `smoke-items.txt` | 実モデルの確認に使う17件 | [docs/usage.md](../docs/usage.md) の「動作を確かめた環境」 |
+| `dr_bench.py`、`dr_extend.py` | 次元削減の評価 | [docs/dimensionality-reduction.md](../docs/dimensionality-reduction.md) |
+| `k_selection_bench.py` | 自動で選ぶ k の評価 | [docs/k-selection.md](../docs/k-selection.md) |
+| `model-choice/` | モデルの選び方の比較 | [docs/model-choice.md](../docs/model-choice.md) |
+
 ## 実行
 
 skill-creator の `run_eval.py` を使う。プラグインの場所は環境によって違う(`~/.claude/plugins/marketplaces/claude-plugins-official/plugins/skill-creator/skills/skill-creator/scripts/run_eval.py` など)。
