@@ -27,6 +27,11 @@ LLM は呼ばない。項目のテキストは外部へ送らない。通信は�
 | `references/output-schema.md` | 出力 JSON の項目、指標の意味、読み方 |
 | `scripts/mece_cluster.py` | クラスタリング本体(依存はスクリプト内の PEP 723 ブロック) |
 | `scripts/test_mece_cluster.py` | モデルを使わない確認(合成した埋め込みで動く) |
+| `scripts/skill_info.py` | 版と実行環境(OS・アプリ・モデル・日付)を出す。標準ライブラリだけ、読み取り専用 |
+| `scripts/test_skill_info.py` | 上の確認 |
+| `VERSION` | スキルの版。`main` で変わると、Actions がタグと Release を作る |
+| `.github/workflows/release.yml` | `VERSION` が変わったときに、タグ・zip・sha256・Release を作る |
+| `docs/release-notes/` | リリースごとのノート(`v<版>.md`)。版を上げる PR に入れる |
 | `install.py` | インストール(更新)、実行時の前提(uv とモデル)の取得、アンインストール |
 | `.github/workflows/ci.yml` | `install.py` を Linux と Windows で動かす確認 |
 | `docs/usage.md` | 操作方法の詳細(インストール、オプション、結果の読み方) |
@@ -88,6 +93,7 @@ silhouette に合格ラインはない。正解が分かっている3テーマ18
 
 ```bash
 uv run scripts/test_mece_cluster.py   # モデル不要
+python3 scripts/test_skill_info.py    # 版と実行環境の出力
 ```
 
 `install.py` は GitHub Actions で、Linux(ubuntu-latest)と Windows(windows-latest)の両方で動かして確かめている。確かめている内容は次のとおり。
