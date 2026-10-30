@@ -31,6 +31,8 @@ LLM は呼ばない。項目のテキストは外部へ送らない。通信は�
 | `.github/workflows/ci.yml` | `install.py` を Linux と Windows で動かす確認 |
 | `docs/usage.md` | 操作方法の詳細(インストール、オプション、結果の読み方) |
 | `evals/` | 発動精度の評価セットと、その読み方 |
+| `evals/dr_bench.py` | 次元削減の評価の再現スクリプト |
+| `docs/dimensionality-reduction.md` | 次元削減(PCA / UMAP / PaCMAP)の評価結果と、入れない理由 |
 
 ## インストール
 
@@ -94,6 +96,8 @@ uv run scripts/test_mece_cluster.py   # モデル不要
 - アンインストールできること
 
 `SKILL.md` の description が発動するかの評価セットは [evals/](evals/) にある。実行方法、照合の修正、2026-10-12 の測定結果は [evals/README.md](evals/README.md) を見る。
+
+次元削減を入れるかどうかの評価は、[docs/dimensionality-reduction.md](docs/dimensionality-reduction.md) にある。
 
 ## ライセンス
 
