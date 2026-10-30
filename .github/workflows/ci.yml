@@ -25,6 +25,10 @@ jobs:
         shell: bash
         run: |
           uv run scripts/test_mece_cluster.py
+      - name: 版と実行環境の出力の確認
+        shell: bash
+        run: |
+          ${{ matrix.python }} scripts/test_skill_info.py
       - name: インストール(uv run、取得はしない)
         shell: bash
         run: |

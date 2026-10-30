@@ -40,6 +40,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 DEFAULT_MODEL = "cl-nagoya/ruri-v3-310m"
 MIN_ITEMS = 4
+ROOT = Path(__file__).resolve().parent.parent  # スキルのフォルダ(VERSION がある)
 
 LIMITS = [
     "網羅性(CE)はこの出力から判定できない。何を全体とみなすかは、目的と軸で決まる。",
@@ -49,6 +50,13 @@ LIMITS = [
 
 # 「1.5倍」「-5℃」のような項目の先頭は消さない。ASCII の記号は後ろに空白があるときだけ箇条書きとみなす
 _BULLET = re.compile(r"^\s*(?:[-*+]\s+|[・●○■□]\s*|\d+[.)]\s+|\d+[．、]\s*)")
+
+
+def skill_version() -> str:
+    try:
+        return (ROOT / "VERSION").read_text(encoding="utf-8").strip() or "unknown"
+    except OSError:
+        return "unknown"
 
 
 # ---------------------------------------------------------------- 入力
@@ -340,6 +348,7 @@ def build_result(
 # ---------------------------------------------------------------- CLI
 def main() -> None:
     p = argparse.ArgumentParser(description="項目の集合をクラスタリングし、MECE の判断材料を JSON で出す")
+    p.add_argument("--version", action="version", version=f"mece-cluster-advisor {skill_version()}")
     p.add_argument("input", help="入力ファイル(.csv は1行目をヘッダとして扱う)。標準入力は -")
     p.add_argument("--column", help="CSV の列名または0始まりの列番号(既定: 先頭列)")
     p.add_argument("--k", default="auto", help="グループ数。auto は silhouette で選ぶ(既定)")

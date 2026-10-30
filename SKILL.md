@@ -119,6 +119,17 @@ uv run scripts/mece_cluster.py items.txt --out result.json
 
 目安として、グループの命名は軽量なモデルでも足りる。排他性の判定と網羅性の指摘は、推論力の高いモデルのほうが向く。この目安は、ベンチマークで検証していない。
 
+## 版と実行環境
+
+版や環境を尋ねられたときと、問題の報告票を作るときだけ実行する。通常の依頼では実行しない。
+
+```bash
+python3 scripts/skill_info.py --version
+python3 scripts/skill_info.py --model <使っているモデル名>
+```
+
+前者は「スキル名 版」の1行を出す。後者は、版・OS・アプリ・モデル・日付を JSON で出し、保存先を標準エラーの `save_to` に示す。スクリプトは何も書き込まない。保存は実行した側が行う。
+
 ## 参照
 
 - [references/output-schema.md](references/output-schema.md): 出力の項目、指標の意味、例
