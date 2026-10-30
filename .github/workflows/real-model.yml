@@ -1,0 +1,53 @@
+name: real-model
+
+# 実モデル(ruri-v3-310m、約 1.2GB)を取得して動かす手動の検査。通常の push・PR では走らせない。
+# 結果は、この実行のログと Issue #25 のコメントに残る。
+on: workflow_dispatch
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  run:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: python3
+          - os: windows-latest
+            python: python
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    env:
+      PYTHONUTF8: "1"
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.0
+      - name: インストール(依存とモデルを取得し、仮の 4 件を実際に流す)
+        shell: bash
+        run: uv run install.py --target claude
+      - name: 17 件を 3 グループに分ける
+        shell: bash
+        run: |
+          set -euo pipefail   # パイプの先頭(検査)が落ちたら、tee があっても失敗にする
+          uv run "$HOME/.claude/skills/mece-cluster-advisor/scripts/mece_cluster.py" evals/smoke-items.txt --k 3 --out result.json
+          ${{ matrix.python }} - <<'PY' | tee summary.txt
+          import json, platform
+          r = json.load(open("result.json", encoding="utf-8"))
+          m = r["meta"]
+          assert m["n_items"] == 17 and m["k"] == 3, m
+          labels = [it["cluster"] for it in r["items"]]
+          sizes = sorted(labels.count(c) for c in set(labels))
+          assert len(sizes) == 3 and min(sizes) >= 1, sizes
+          print(f"{platform.system()} device={m['device']} model={m['model']} k={m['k']} sizes={sizes} silhouette={m['silhouette_mean']} labels={labels}")
+          PY
+      - name: 結果を Issue に書く
+        if: always()
+        shell: bash
+        run: |
+          body="real-model (${{ matrix.os }}): ${{ job.status }} — ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          if [ -f summary.txt ]; then body="$body"$'\n\n'"$(cat summary.txt)"; fi
+          gh issue comment 25 --repo "${{ github.repository }}" --body "$body"
