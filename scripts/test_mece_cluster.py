@@ -10,6 +10,7 @@
 import numpy as np
 
 from mece_cluster import (
+    AUTO_K_NOTE,
     build_result,
     choose_k,
     cosine_distance,
@@ -86,7 +87,15 @@ def test_build_result_is_consistent():
 
 def test_warns_when_auto_k_hits_upper_bound():
     res = build_result(TEXTS, EMB, k=None, k_max=2, seed=0, meta={}, tokenize=lambda t: [t])
-    assert res["meta"]["k"] == 2 and len(res["meta"]["warnings"]) == 1
+    warnings = res["meta"]["warnings"]
+    assert res["meta"]["k"] == 2 and any("上限" in w for w in warnings) and len(warnings) == 2
+
+
+def test_auto_k_warns_that_it_tends_to_run_small():
+    auto = build_result(TEXTS, EMB, k=None, k_max=4, seed=0, meta={}, tokenize=lambda t: [t])
+    assert AUTO_K_NOTE in auto["meta"]["warnings"]
+    fixed = build_result(TEXTS, EMB, k=2, k_max=4, seed=0, meta={}, tokenize=lambda t: [t])
+    assert AUTO_K_NOTE not in fixed["meta"]["warnings"]  # 利用者が k を決めたときは出さない
 
 
 def test_resolve_device_explicit_cpu():

@@ -162,6 +162,10 @@ GPU やアクセラレータ(NVIDIA CUDA, Apple MPS, Intel XPU, DirectML, Huawei
 
 silhouette に合格ラインはない。正解が分かっている3テーマ18件を k=3 で完全に分けても、平均は 0.18 だった。同じデータで k を変えたときの比較に使う。
 
+### 自動で選ぶ k
+
+`--k auto` は、実際の話題の数より小さい k を選びやすい(9カテゴリのデータで、平均約4)。`meta.warnings` に、そのことが常に出る。目的から k が決まるなら、`--k` で指定して再実行する。評価の詳細は [k-selection.md](k-selection.md) にある。
+
 指標の意味と実例は [references/output-schema.md](../references/output-schema.md) にある。
 
 ## 版と実行環境
