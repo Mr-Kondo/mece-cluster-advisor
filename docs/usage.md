@@ -9,6 +9,7 @@
 - [スキルとして使う](#スキルとして使う)
 - [スクリプトを直接使う](#スクリプトを直接使う)
 - [結果を読む](#結果を読む)
+- [版と実行環境](#版と実行環境)
 - [確認](#確認)
 
 ## 必要な環境
@@ -163,12 +164,25 @@ silhouette に合格ラインはない。正解が分かっている3テーマ18
 
 指標の意味と実例は [references/output-schema.md](../references/output-schema.md) にある。
 
+## 版と実行環境
+
+```bash
+python3 scripts/skill_info.py --version                 # 「mece-cluster-advisor 版」の1行
+python3 scripts/skill_info.py --model <モデル名>         # 版・OS・アプリ・モデル・日付を JSON で出す
+uv run scripts/mece_cluster.py --version                # 同じ1行(依存を解決するため、初回は時間がかかる)
+```
+
+`skill_info.py` は標準ライブラリだけで動き、ファイルを書き込まない。保存先 `~/.agents/skill-env/mece-cluster-advisor.json` は標準エラーの `save_to` に出る。保存は実行した側が行う。ユーザー名・ホスト名・パス・メールアドレスは、JSON に出さない。
+
+版は、リポジトリ直下の `VERSION` が持つ。`main` の `VERSION` が変わると、GitHub Actions がタグ `v<版>` と Release(zip・sha256)を作る。ノートは `docs/release-notes/v<版>.md` を使う。
+
 ## 確認
 
 モデルを使わない確認:
 
 ```bash
 uv run scripts/test_mece_cluster.py
+python3 scripts/test_skill_info.py
 ```
 
 `install.py` は GitHub Actions で、Linux(ubuntu-latest)と Windows(windows-latest)の両方で動かして確かめている。確かめている内容は次のとおり。

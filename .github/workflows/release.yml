@@ -1,0 +1,91 @@
+name: release
+
+# main の VERSION が変わると、その版のタグと Release を作る(版を上げる PR をマージするだけでよい)。
+# 同じ版の Release が既にあれば、何もしない。失敗したときは、Actions の画面から手動で再実行できる。
+# ノートは、PR で確認済みの docs/release-notes/v<版>.md を使う。無ければ失敗する(自動生成には頼らない)。
+on:
+  push:
+    branches: [main]
+    paths: [VERSION]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.0
+
+      - name: 版を読む
+        id: version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+          ver="$(tr -d '[:space:]' < VERSION)"
+          echo "$ver" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || { echo "error: VERSION が x.y.z の形でない: '$ver'"; exit 1; }
+          tag="v$ver"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if gh release view "$tag" > /dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "$tag の Release は既にある。何もしない。"
+          else
+            # Release が無く、同名のタグだけが別のコミットにあると、配布物とタグの中身が食い違う。止める。
+            remote="$(git ls-remote --tags origin "refs/tags/$tag" "refs/tags/$tag^{}" | awk 'END { print $1 }')"
+            if [ -n "$remote" ] && [ "$remote" != "$GITHUB_SHA" ]; then
+              echo "error: タグ $tag が別のコミット($remote)にある。このコミット($GITHUB_SHA)と違う。"
+              exit 1
+            fi
+          fi
+
+      - name: ノートがあることを確かめる
+        if: steps.version.outputs.exists != 'true'
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -eu
+          test -s "docs/release-notes/$TAG.md" || { echo "error: docs/release-notes/$TAG.md が無い。版を上げる PR にノートを入れる。"; exit 1; }
+
+      - name: 単体テストの実行
+        if: steps.version.outputs.exists != 'true'
+        run: |
+          set -eu
+          uv run scripts/test_mece_cluster.py
+          python3 scripts/test_skill_info.py
+
+      - name: 配布物を作って中身を確かめる
+        if: steps.version.outputs.exists != 'true'
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -eu
+          mkdir dist
+          # 追跡されているファイルだけを入れる(実行環境の設定や検証用の出力は、そもそも入らない)
+          git archive --format=zip --prefix=mece-cluster-advisor/ -o dist/mece-cluster-advisor.zip HEAD -- . ':(exclude).github' ':(exclude).gitignore'
+          (cd dist && sha256sum mece-cluster-advisor.zip > mece-cluster-advisor.sha256)
+          unzip -Z1 dist/mece-cluster-advisor.zip > dist/list.txt
+          for f in SKILL.md VERSION install.py scripts/mece_cluster.py scripts/skill_info.py; do
+            grep -qx "mece-cluster-advisor/$f" dist/list.txt || { echo "error: zip に $f が無い"; exit 1; }
+          done
+          if grep -E '/\.(codex|serena|claude|venv|git)(/|$)|/feedback(/|$)' dist/list.txt; then echo "error: zip に入れてはいけないものがある"; exit 1; fi
+          test "$(unzip -p dist/mece-cluster-advisor.zip mece-cluster-advisor/VERSION | tr -d '[:space:]')" = "${TAG#v}" || { echo "error: zip の VERSION がタグと違う"; exit 1; }
+          rm dist/list.txt
+
+      - name: Release を作る
+        if: steps.version.outputs.exists != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -eu
+          gh release create "$TAG" dist/mece-cluster-advisor.zip dist/mece-cluster-advisor.sha256 \
+            --target "$GITHUB_SHA" --title "$TAG" --notes-file "docs/release-notes/$TAG.md"

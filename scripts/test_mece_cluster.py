@@ -18,6 +18,7 @@ from mece_cluster import (
     make_tokenizer,
     resolve_device,
     silhouette,
+    skill_version,
 )
 
 
@@ -47,6 +48,12 @@ def test_tokenizer_keeps_content_nouns_only():
     words = tokenize("圧力鍋で豚の角煮を30分で作る")
     assert "圧力鍋" in words and "角煮" in words
     assert "分" not in words and "30" not in words and "で" not in words
+
+
+def test_skill_version_is_semver():
+    import re
+
+    assert re.fullmatch(r"\d+\.\d+\.\d+", skill_version())
 
 
 def test_embedding_prefix():
