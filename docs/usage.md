@@ -29,7 +29,7 @@
 uv run install.py
 ```
 
-Claude Code は `~/.claude/skills/`、Codex は `~/.agents/skills/`、Gemini Antigravity 向けは `~/.gemini/config/skills/` にコピーされる。再実行すると更新になる。各ホストの実際の発見・読込は、配置確認とは別に確認する。
+Claude Code は `~/.claude/skills/`、Codex は `~/.agents/skills/`、Gemini Antigravity 向けは `~/.gemini/config/skills/` にコピーされる。コピーするのは実行と判断に使うもの(`SKILL.md`、`VERSION`、`LICENSE`、`scripts/mece_cluster.py`、`scripts/skill_info.py`、`references/`(更新用の `update-knowledge.md` を除く)、`docs/k-selection.md`、`docs/model-choice.md`)だけである。評価・設計記録・テスト・README はリポジトリと Release の zip にだけある。再実行すると更新になる。各ホストの実際の発見・読込は、配置確認とは別に確認する。
 
 ### オプション
 

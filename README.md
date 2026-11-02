@@ -31,7 +31,7 @@ LLM は呼ばない。項目のテキストは外部へ送らない。通信は�
 | `scripts/test_mece_cluster.py` | モデルを使わない確認(合成した埋め込みで動く) |
 | `scripts/skill_info.py` | 版と実行環境(OS・アプリ・モデル・日付)を出す。標準ライブラリだけ、読み取り専用 |
 | `scripts/test_skill_info.py` | `skill_info.py` の確認 |
-| `install.py` | インストール(更新)、実行時の前提(uv とモデル)の取得、アンインストール |
+| `install.py` | インストール(更新)、実行時の前提(uv とモデル)の取得、アンインストール。配置するのは許可リストのファイルだけ(詳細は [docs/usage.md](docs/usage.md)) |
 
 ### リリースと CI
 

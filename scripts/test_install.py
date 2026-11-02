@@ -52,7 +52,7 @@ class InstallTests(unittest.TestCase):
 
     def test_copy_failure_does_not_touch_existing_install(self):
         installer.install(self.source, self.target)
-        with patch.object(installer.shutil, "copytree", side_effect=OSError("copy failed")):
+        with patch.object(installer.shutil, "copy2", side_effect=OSError("copy failed")):
             with self.assertRaises(OSError):
                 installer.install(self.source, self.target)
         self.assertTrue((self.target / "SKILL.md").is_file())
@@ -106,7 +106,9 @@ class InstallTests(unittest.TestCase):
             installer.main()
         for rel in installer.TARGETS.values():
             target = self.root / rel / installer.SKILL_NAME
-            self.assertTrue((target / "references/update-knowledge.md").is_file())
+            self.assertTrue((target / "references/judgment.md").is_file())
+            self.assertFalse((target / "references/update-knowledge.md").exists())
+            self.assertFalse((target / "evals").exists())
 
     def test_main_checks_all_targets_before_updating(self):
         bad = self.root / installer.TARGETS["codex"] / installer.SKILL_NAME
@@ -125,6 +127,22 @@ class InstallTests(unittest.TestCase):
         with patch.object(installer, "tracked_files", return_value=files):
             installer.install(self.source, self.target)
         self.assertEqual([p.name for p in self.target.iterdir()], ["SKILL.md"])
+
+    def test_only_allowlisted_files_are_shipped(self):
+        names = ["SKILL.md", "scripts/mece_cluster.py", "scripts/test_install.py", "references/judgment.md",
+                 "references/update-knowledge.md", "docs/k-selection.md", "docs/usage.md", "evals/x.json",
+                 "adr/a.md", "knowledge/index.md", "README.md", "install.py", "CLAUDE.local.md",
+                 "references/CLAUDE.local.md", "references/__pycache__/x.pyc", "scripts/.env"]
+        for n in names:
+            f = self.source / n
+            f.parent.mkdir(parents=True, exist_ok=True)
+            f.write_text("x", encoding="utf-8")
+        for files in ([Path(n) for n in names], None):  # Git の作業ツリーと、追跡できない場所の両方
+            with patch.object(installer, "tracked_files", return_value=files):
+                target = self.root / ("t1" if files else "t2") / installer.SKILL_NAME
+                installer.install(self.source, target)
+            got = sorted(p.relative_to(target).as_posix() for p in target.rglob("*") if p.is_file())
+            self.assertEqual(got, ["SKILL.md", "docs/k-selection.md", "references/judgment.md", "scripts/mece_cluster.py"])
 
     def test_symlink_is_not_replaced(self):
         real = self.root / "real"
