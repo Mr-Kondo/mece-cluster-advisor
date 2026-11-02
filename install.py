@@ -2,7 +2,7 @@
 # /// script
 # requires-python = ">=3.9"
 # ///
-"""スキルを Claude Code / Codex へインストール(更新)・アンインストールする。
+"""スキルを Claude Code / Codex / Gemini Antigravity へ配置・更新・削除する。
 
     uv run install.py                  # インストール(更新)と、依存とモデルの取得
     uv run install.py --target claude  # Claude Code のみ
@@ -25,7 +25,7 @@ import tempfile
 from pathlib import Path
 
 SKILL_NAME = "mece-cluster-advisor"
-TARGETS = {"claude": ".claude/skills", "codex": ".agents/skills"}  # ホームからの相対
+TARGETS = {"claude": ".claude/skills", "codex": ".agents/skills", "gemini": ".gemini/config/skills"}
 # Git の作業ツリーからは、追跡しているファイルだけをコピーする(未追跡の私的ファイルを持ち込まない)。
 # 追跡できない場所(zip の展開先など)では、次の名前を除いてコピーする。
 # 実行環境の設定(トークンを含む)、仮想環境、検証用の出力、キャッシュ、リポジトリの管理ファイル、
@@ -57,23 +57,56 @@ def tracked_files(source: Path) -> list[Path] | None:
 
 
 def install(source: Path, target: Path) -> None:
-    """source の中身を target へ写す。既にあれば消して作り直す(更新)。"""
+    """コピーを準備してから配置する。旧版は skills/ の外へ退避して保持する。"""
     if source == target.resolve():
         raise SystemExit(f"error: インストール元と先が同じ({target})。リポジトリの install.py を実行する。")
     if not (source / "SKILL.md").is_file():
         raise SystemExit(f"error: {source} に SKILL.md がない。リポジトリの直下で実行する。")
-    if target.is_dir():
-        shutil.rmtree(target)  # 更新で消えたファイルを残さない
+    if target.is_symlink() or (target.exists() and not target.is_dir()):
+        raise SystemExit(f"error: 通常のディレクトリではないため更新しない: {target}")
+    files = tracked_files(source)  # 失敗したとき、既存のインストール先を変更しない
     target.parent.mkdir(parents=True, exist_ok=True)
-    files = tracked_files(source)
-    if files is None:
-        shutil.copytree(source, target, ignore=shutil.ignore_patterns(*EXCLUDE))
-    else:
-        for rel in files:
-            if any(fnmatch.fnmatch(part, pat) for part in rel.parts for pat in EXCLUDE) or not (source / rel).is_file():
-                continue
-            (target / rel).parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source / rel, target / rel)
+    # ADR: adr/2026-11-02-wikiskill-update-knowledge.md
+    with tempfile.TemporaryDirectory(prefix=f".{SKILL_NAME}-stage-", dir=target.parent) as tmp:
+        staged = Path(tmp) / SKILL_NAME
+        if files is None:
+            shutil.copytree(source, staged, ignore=shutil.ignore_patterns(*EXCLUDE))
+        else:
+            staged.mkdir()
+            for rel in files:
+                if any(fnmatch.fnmatch(part, pat) for part in rel.parts for pat in EXCLUDE) or not (source / rel).is_file():
+                    continue
+                (staged / rel).parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(source / rel, staged / rel)
+        if not (staged / "SKILL.md").is_file():
+            raise SystemExit("error: 配置用コピーに SKILL.md がない。既存版は変更していない。")
+        backup = None
+        if target.exists():
+            backup_parent = target.parent.parent / ".skill-backups"
+            backup_parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+            backup_root = backup_parent / SKILL_NAME
+            backup_root.mkdir(mode=0o700, parents=True, exist_ok=True)
+            backup = Path(tempfile.mkdtemp(prefix="update-", dir=backup_root)) / SKILL_NAME
+            try:
+                target.rename(backup)
+            except BaseException:
+                backup.parent.rmdir()
+                raise
+        try:
+            staged.rename(target)
+        except BaseException as switch_error:
+            if backup is not None:
+                try:
+                    backup.rename(target)
+                except OSError as restore_error:
+                    raise SystemExit(
+                        f"error: 配置切替と復元に失敗した。旧版は {backup} に保持している。"
+                        f" 切替: {switch_error}; 復元: {restore_error}"
+                    ) from switch_error
+                backup.parent.rmdir()
+            raise
+        if backup is not None:
+            print(f"backup: {backup}")
     print(f"installed: {target}")
 
 
@@ -160,7 +193,7 @@ def purge_uv_envs(source: Path) -> None:
 
 # ---------------------------------------------------------------- CLI
 def main() -> None:
-    p = argparse.ArgumentParser(description="スキルを Claude Code / Codex へインストール・アンインストールする")
+    p = argparse.ArgumentParser(description="スキルを Claude Code / Codex / Gemini Antigravity へ配置・更新・削除する")
     p.add_argument("--target", choices=[*TARGETS, "all"], default="all", help="対象(既定 all)")
     p.add_argument("--uninstall", action="store_true", help="スキルを削除する")
     p.add_argument("--purge", action="store_true", help="スキルと、取得したモデルと依存のキャッシュを削除する")
@@ -183,7 +216,12 @@ def main() -> None:
             purge_uv_envs(source)
         return
 
-    uv = ensure_uv()
+    # 明らかに更新できない配置先は、別のホストを更新する前に検出する。
+    for name in names:
+        target = Path.home() / TARGETS[name] / SKILL_NAME
+        if target.is_symlink() or (target.exists() and not target.is_dir()):
+            raise SystemExit(f"error: 通常のディレクトリではないため更新しない: {target}")
+    uv = ensure_uv() if not args.no_fetch else None
     first = None
     for name in names:
         target = Path.home() / TARGETS[name] / SKILL_NAME

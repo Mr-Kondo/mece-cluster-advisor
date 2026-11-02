@@ -29,6 +29,9 @@ jobs:
         shell: bash
         run: |
           ${{ matrix.python }} scripts/test_skill_info.py
+      - name: 3環境の配置と更新時バックアップの確認
+        shell: bash
+        run: ${{ matrix.python }} scripts/test_install.py
       - name: インストール(uv run、取得はしない)
         shell: bash
         run: |

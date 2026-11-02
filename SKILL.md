@@ -134,5 +134,7 @@ python3 scripts/skill_info.py --model <使っているモデル名>
 
 ## 参照
 
+このスキル自体の改善・更新を依頼されたときだけ、[更新用の知見と採否](references/update-knowledge.md) を読む。通常の分類では読まない。
+
 - [references/output-schema.md](references/output-schema.md): 出力の項目、指標の意味、例
 - [references/judgment.md](references/judgment.md): 4つの判断の手順と、設計の根拠

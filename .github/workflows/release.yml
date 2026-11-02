@@ -61,6 +61,7 @@ jobs:
           set -eu
           uv run scripts/test_mece_cluster.py
           python3 scripts/test_skill_info.py
+          python3 scripts/test_install.py
 
       - name: 配布物を作って中身を確かめる
         if: steps.version.outputs.exists != 'true'

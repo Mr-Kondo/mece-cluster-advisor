@@ -29,17 +29,18 @@
 uv run install.py
 ```
 
-Claude Code は `~/.claude/skills/`、Codex は `~/.agents/skills/` にコピーされる。再実行すると更新になる。
+Claude Code は `~/.claude/skills/`、Codex は `~/.agents/skills/`、Gemini Antigravity 向けは `~/.gemini/config/skills/` にコピーされる。再実行すると更新になる。各ホストの実際の発見・読込は、配置確認とは別に確認する。
 
 ### オプション
 
 | オプション | 動作 |
 |---|---|
-| (なし) | Claude Code と Codex の両方へインストールする |
+| (なし) | Claude Code・Codex・Gemini Antigravity 向けの3か所へ配置する |
 | `--target claude` | Claude Code のみ |
 | `--target codex` | Codex のみ |
+| `--target gemini` | Gemini Antigravity 向けのみ |
 | `--no-fetch` | 依存とモデルの取得をしない |
-| `--uninstall` | 両方から削除する |
+| `--uninstall` | 3か所から削除する（バックアップは残す） |
 | `--purge` | 削除し、取得したモデルと依存のキャッシュも消す |
 
 ```bash
@@ -71,7 +72,13 @@ Windows では `python install.py` を使う。
 
 ### 更新
 
-`git pull` してから、同じコマンドをもう一度実行する。リポジトリから消えたファイルは、インストール先からも消える。
+`git pull` してから、同じコマンドをもう一度実行する。新しいコピーを準備してから置き換える。旧コピーは、各 `skills/` の親の `.skill-backups/mece-cluster-advisor/update-*/mece-cluster-advisor/` に保持し、標準出力の `backup:` に場所を示す。旧版のローカル変更もそこへ残る。リポジトリから消えたファイルは新しい配置先に残さない。
+
+復元するときはホストを閉じ、現行コピーも退避してから、表示された旧コピーを元の配置先へ戻す。バックアップは自動削除せず、アンインストールや `--purge` でも残す。不要と確認できたものだけ後で削除する。シンボリックリンクの配置先は安全のため自動更新せず止まる。
+
+バックアップには旧コピーの私的ファイルも残る。作成するディレクトリはPOSIXでは所有者のみアクセスできる権限を指定する。Windowsでは実際のアクセス制御は継承されるACLに依存する。既存ディレクトリの権限は変更しない。ホストがバックアップを走査しないことは未検証である。
+
+複数配置先をまとめて更新する場合、事前に明らかに不正な配置先を検出するが、実行中のI/O失敗で一部だけ更新される場合がある。標準出力の `installed:` と `backup:` を確認し、問題を解消して未更新の `--target` を再実行する。退避先が別ファイルシステムへのリンク等で旧版を移動できないときは、既存版を保持して止まる。
 
 ### コピーされないもの
 
