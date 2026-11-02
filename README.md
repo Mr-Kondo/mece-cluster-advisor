@@ -129,7 +129,7 @@ python3 scripts/test_install.py       # 3環境の配置・バックアップ・
 
 ## スキル自体を改善するとき
 
-「このスキルの更新・改善を提案して」と依頼されたときだけ、[更新手順](references/update-knowledge.md)を使う。[知見索引](knowledge/index.md)と[採否履歴](knowledge/decisions.md)は、過去のIssue・評価への任意の入口である。通常の分類には読み込まない。
+「このスキルの更新・改善を提案して」と依頼されたときだけ、[更新手順](references/update-knowledge.md)を使う。[知見索引と採否履歴](knowledge/index.md)は、過去のIssue・評価への任意の入口である。通常の分類には読み込まない。
 
 WikiSkillの実行記録・知見・実行用スキルの分離を取り入れた。記録は `feedback/`、根拠の索引は `knowledge/`、採用した手順は `SKILL.md` と参照ファイルに置く。知見には対象条件と確認状態、提案には採否理由を残す。索引を追加しただけで分類品質や費用が改善したとは扱わない。[限定試行](evals/update-knowledge-result.md)では索引なし/ありとも2/2成功で、優位性は確認できなかった。[設計と撤退条件](adr/2026-11-02-wikiskill-update-knowledge.md)を参照する。
 
