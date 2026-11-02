@@ -13,7 +13,7 @@
 
 | 項目 | 内容 |
 |---|---|
-| データ | [次元削減の評価](dimensionality-reduction.md)と同じ livedoor ニュース(CC BY-ND 2.1 JP。評価にだけ使い、再配布しない)。埋め込みも共有する |
+| データ | [次元削減の評価](https://github.com/Mr-Kondo/mece-cluster-advisor/blob/main/docs/dimensionality-reduction.md)と同じ livedoor ニュース(CC BY-ND 2.1 JP。評価にだけ使い、再配布しない)。埋め込みも共有する |
 | 正解の話題数 m | 9 カテゴリから m = 3・5・7・9 個を選んだ部分集合(カテゴリごとに 100 件)。m < 9 では、4 通りの選び方を使う。m = 9 は選び方が1通りなので、同じ条件が 4 回並ぶ |
 | 設定 | `title`(タイトルだけ)と `lead`(タイトルと本文の先頭 150 字) |
 | 繰り返し | 2 サンプル × 4 部分集合 × 2 シード = 16 回(1 つの設定・m につき) |
@@ -21,7 +21,7 @@
 | 基準 | silhouette 最大(現行)/ Calinski-Harabasz 最大 / Davies-Bouldin 最小 / silhouette が最大から 0.01 以内で最大の k / 同 0.02 以内で最大の k |
 | 指標 | 選ばれた k の平均、正解 m との差の絶対値の平均、その k での ARI の平均 |
 
-実行日は 2026-10-30。版は [次元削減の評価](dimensionality-reduction.md)と同じ。
+実行日は 2026-10-30。版は [次元削減の評価](https://github.com/Mr-Kondo/mece-cluster-advisor/blob/main/docs/dimensionality-reduction.md)と同じ。
 
 ## 結果
 
@@ -105,4 +105,4 @@ uv run evals/k_selection_bench.py                                   # livedoor
 uv run evals/k_selection_bench.py --dataset massive --ms 3 6 9 12 18  # 口語の発話
 ```
 
-データと埋め込みのキャッシュは、[次元削減の評価](dimensionality-reduction.md)と共有する(`feedback/dr-bench/`、Git の対象外)。
+データと埋め込みのキャッシュは、[次元削減の評価](https://github.com/Mr-Kondo/mece-cluster-advisor/blob/main/docs/dimensionality-reduction.md)と共有する(`feedback/dr-bench/`、Git の対象外)。

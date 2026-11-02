@@ -16,7 +16,6 @@ uv がなければ、公式のインストーラで入れてから続ける。Ma
 from __future__ import annotations
 
 import argparse
-import fnmatch
 import os
 import shutil
 import subprocess
@@ -26,11 +25,14 @@ from pathlib import Path
 
 SKILL_NAME = "mece-cluster-advisor"
 TARGETS = {"claude": ".claude/skills", "codex": ".agents/skills", "gemini": ".gemini/config/skills"}
-# Git の作業ツリーからは、追跡しているファイルだけをコピーする(未追跡の私的ファイルを持ち込まない)。
-# 追跡できない場所(zip の展開先など)では、次の名前を除いてコピーする。
-# 実行環境の設定(トークンを含む)、仮想環境、検証用の出力、キャッシュ、リポジトリの管理ファイル、
-# 手元の私的な指示ファイル(CLAUDE.local.md など)はコピーしない
-EXCLUDE = (".git", ".gitignore", ".claude", ".codex", ".serena", ".venv", "feedback", ".DS_Store", "__pycache__", "*.local.md")
+# 配置するのは、実行と判断に使うファイルだけ(許可リスト)。評価・設計記録・テスト・READMEなどは、
+# リポジトリと Release の zip にだけあり、配置先には入れない。許可リストなので、トークンを含む
+# 実行環境の設定、仮想環境、検証用の出力、手元の私的な指示ファイルも持ち込まない。
+# 末尾が / のものはフォルダ。Git の作業ツリーでは、追跡しているものだけをコピーする
+SHIP = ("SKILL.md", "VERSION", "LICENSE", "scripts/mece_cluster.py", "scripts/skill_info.py", "references/",
+        "docs/k-selection.md", "docs/model-choice.md")
+# references/ のうち、リポジトリでスキル自体を改修するときだけ使うもの(リンク先も配置しない)
+NOT_SHIPPED = ("references/update-knowledge.md",)
 MODEL = "cl-nagoya/ruri-v3-310m"  # scripts/mece_cluster.py の既定と同じ
 UV_URL = "https://docs.astral.sh/uv/"
 
@@ -56,6 +58,14 @@ def tracked_files(source: Path) -> list[Path] | None:
     return files
 
 
+def shipped(rel: Path) -> bool:
+    """配置先に入れるファイルか(許可リストにあり、除外に当たらない)。"""
+    name = rel.as_posix()
+    if name in NOT_SHIPPED or any(part == "__pycache__" or part.startswith(".") or part.endswith((".pyc", ".local.md")) for part in rel.parts):
+        return False
+    return any(name.startswith(item) if item.endswith("/") else name == item for item in SHIP)
+
+
 def install(source: Path, target: Path) -> None:
     """コピーを準備してから配置する。旧版は skills/ の外へ退避して保持する。"""
     if source == target.resolve():
@@ -69,15 +79,14 @@ def install(source: Path, target: Path) -> None:
     # ADR: adr/2026-11-02-wikiskill-update-knowledge.md
     with tempfile.TemporaryDirectory(prefix=f".{SKILL_NAME}-stage-", dir=target.parent) as tmp:
         staged = Path(tmp) / SKILL_NAME
-        if files is None:
-            shutil.copytree(source, staged, ignore=shutil.ignore_patterns(*EXCLUDE))
-        else:
-            staged.mkdir()
-            for rel in files:
-                if any(fnmatch.fnmatch(part, pat) for part in rel.parts for pat in EXCLUDE) or not (source / rel).is_file():
-                    continue
-                (staged / rel).parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(source / rel, staged / rel)
+        if files is None:  # 追跡できない場所(zip の展開先など)。許可リストのものだけを集める
+            files = [f.relative_to(source) for f in sorted(source.rglob("*")) if f.is_file() and f.relative_to(source).parts[0] in {Path(i).parts[0] for i in SHIP}]
+        staged.mkdir()
+        for rel in files:
+            if not shipped(rel) or not (source / rel).is_file():
+                continue
+            (staged / rel).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source / rel, staged / rel)
         if not (staged / "SKILL.md").is_file():
             raise SystemExit("error: 配置用コピーに SKILL.md がない。既存版は変更していない。")
         backup = None
