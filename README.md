@@ -1,6 +1,6 @@
 # MECE Cluster Advisor
 
-項目の集合(アイデア、要件、顧客の声、記事タイトル、論点など)を、MECE(漏れなく重複なく)に分類・整理するための判断材料を作る、Claude Code と Codex 向けのスキルである。`install.py` は、この2つへインストールする。
+項目の集合(アイデア、要件、顧客の声、記事タイトル、論点など)を、MECE(漏れなく重複なく)に分類・整理するための判断材料を作る、Claude Code・Codex・Gemini Antigravity 向けのスキルである。`install.py` は、この3つへ配置する。ファイルの配置と各ホストによる実際の読込は別に確認する。
 
 分割を自動で確定する道具ではない。埋め込みとクラスタリングで、グループ候補、境界にある曖昧な項目、重複しやすいグループの組を出す。軸の命名、排他性の判定、網羅性の穴の指摘は、ホストのモデルが行い、最終判断は利用者に残す。
 
@@ -70,8 +70,8 @@ LLM は呼ばない。項目のテキストは外部へ送らない。通信は�
 uv run install.py
 ```
 
-- Claude Code は `~/.claude/skills/`、Codex は `~/.agents/skills/` を見る。
-- 再実行すると更新になる。
+- Claude Code は `~/.claude/skills/`、Codex は `~/.agents/skills/`、Gemini Antigravity 向けは `~/.gemini/config/skills/` に配置する。
+- 再実行すると更新になる。置き換える旧コピーは、各 `skills/` の親にある `.skill-backups/mece-cluster-advisor/` へ退避して保持する。
 - 対象の絞り込み、取得の省略、削除、キャッシュの削除は、[docs/usage.md](docs/usage.md) の「インストール」にある。
 
 ## 使い方
@@ -115,6 +115,7 @@ silhouette に合格ラインはない。正解が分かっている3テーマ18
 ```bash
 uv run scripts/test_mece_cluster.py   # モデル不要
 python3 scripts/test_skill_info.py    # 版と実行環境の出力
+python3 scripts/test_install.py       # 3環境の配置・バックアップ・削除
 ```
 
 `install.py` は、GitHub Actions で Linux(ubuntu-latest)と Windows(windows-latest)の両方で確かめている。確かめる内容は [docs/usage.md](docs/usage.md) の「確認」にある。
@@ -125,6 +126,12 @@ python3 scripts/test_skill_info.py    # 版と実行環境の出力
 - 次元削減を入れない理由: [docs/dimensionality-reduction.md](docs/dimensionality-reduction.md)
 - 自動で選ぶ k の評価: [docs/k-selection.md](docs/k-selection.md)
 - モデルの選び方の評価: [docs/model-choice.md](docs/model-choice.md)
+
+## スキル自体を改善するとき
+
+「このスキルの更新・改善を提案して」と依頼されたときだけ、[更新手順](references/update-knowledge.md)を使う。[知見索引](knowledge/index.md)と[採否履歴](knowledge/decisions.md)は、過去のIssue・評価への任意の入口である。通常の分類には読み込まない。
+
+WikiSkillの実行記録・知見・実行用スキルの分離を取り入れた。記録は `feedback/`、根拠の索引は `knowledge/`、採用した手順は `SKILL.md` と参照ファイルに置く。知見には対象条件と確認状態、提案には採否理由を残す。索引を追加しただけで分類品質や費用が改善したとは扱わない。[限定試行](evals/update-knowledge-result.md)では索引なし/ありとも2/2成功で、優位性は確認できなかった。[設計と撤退条件](adr/2026-11-02-wikiskill-update-knowledge.md)を参照する。
 
 ## ライセンス
 
