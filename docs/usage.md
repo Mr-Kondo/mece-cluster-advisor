@@ -23,6 +23,27 @@
 
 ## インストール
 
+<a id="skills-cli"></a>
+
+### skills CLIでの登録・更新・削除
+
+[`skills` CLI](https://github.com/vercel-labs/skills)で取得元を登録すると、`npx skills update` の対象になる。`install.py` でコピーしただけのスキルは自動では登録されない。Node.jsの要件はCLIの公式案内を確認する。
+
+```bash
+# 初回登録。表示される配置先と上書き対象を確認する
+npx skills add Mr-Kondo/mece-cluster-advisor -g --skill mece-cluster-advisor -a claude-code codex antigravity
+# このスキルだけを更新
+npx skills update mece-cluster-advisor -g
+# CLI管理の配置を削除
+npx skills remove mece-cluster-advisor -g -y
+```
+
+登録後は `npx skills update` だけでも更新できるが、他の登録済みスキルも更新対象になる。プロジェクト内で実行するときは、対話でグローバルを選ぶか `-g` を付ける。CLIの更新は既定ブランチを追跡し、最新Releaseのタグを選ぶものではない。
+
+既存の配置から移行するときは、ホストを閉じ、上書きされるスキルフォルダを `skills/` の外へ退避してから登録する。このMacで確認したCLI 1.7.6は `~/.agents/skills/mece-cluster-advisor/` を実体とする共有配置で、Claude Codeは `~/.claude/skills/` からリンクされ、CodexとAntigravityは共有配置を使う。CLIの版により配置先が異なるため、登録時の表示を確認する。更新後は共有配置の `VERSION` で版を確認できる。`install.py` のAntigravity向け配置先は `~/.gemini/config/skills/` である。旧配置を使う環境では、その旧フォルダも退避し、同名のシンボリックリンクを共有配置へ向ける。この追加リンクはCLI管理外なので、削除時は別途取り除く。
+
+CLIは `install.py` の許可リストを使わず、リポジトリの補助文書・評価用ファイルも配置する。uv・Python依存・モデルの取得は行わない。必要な取得は初回のスクリプト実行時に行う。CLI管理後は `install.py` を同じ配置先に重ねて使わない。シンボリックリンクに対して既存インストーラは停止する。
+
 ### 基本
 
 ```bash

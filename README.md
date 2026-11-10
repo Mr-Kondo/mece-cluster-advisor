@@ -64,6 +64,20 @@ LLM は呼ばない。項目のテキストは外部へ送らない。通信は�
 
 ## インストール
 
+### `npx skills add` で入れる場合
+
+Node.jsを用意し、GitHubの取得元を登録して入れる。`npx skills add Mr-Kondo/mece-cluster-advisor` だけでも入る(対話で配置先を選ぶ)。既存コピーがある場合は、先にホストを閉じ、スキルフォルダを `skills/` の外へ退避する([移行手順](docs/usage.md#skills-cli))。
+
+```bash
+npx skills add Mr-Kondo/mece-cluster-advisor -g --skill mece-cluster-advisor -a claude-code codex antigravity
+# 次回以降の更新
+npx skills update mece-cluster-advisor -g
+```
+
+登録後は `npx skills update` でも更新できる(他の登録済みスキルも対象になる)。更新先は最新Releaseのタグではなく、GitHubの既定ブランチである。既存の `install.py` 配置からの移行、配置先の違い、削除方法は [CLI管理への移行](docs/usage.md#skills-cli)を参照する。
+
+### 既存インストーラを使う場合
+
 スキルとしてコピーする。リポジトリ直下で実行する。
 
 ```bash
