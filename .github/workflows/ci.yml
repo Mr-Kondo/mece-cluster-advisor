@@ -6,7 +6,8 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  # ジョブ名は main の必須チェック(install (...))と一致させる。変えるときはブランチ保護も変える
+  install:
     strategy:
       fail-fast: false
       matrix:
