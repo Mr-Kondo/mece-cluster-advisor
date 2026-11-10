@@ -1,6 +1,6 @@
 # MECE Cluster Advisor
 
-項目の集合(アイデア、要件、顧客の声、記事タイトル、論点など)を、MECE(漏れなく重複なく)に分類・整理するための判断材料を作る、Claude Code・Codex・Gemini Antigravity 向けのスキルである。`install.py` は、この3つへ配置する。ファイルの配置と各ホストによる実際の読込は別に確認する。
+項目の集合(アイデア、要件、顧客の声、記事タイトル、論点など)を、MECE(漏れなく重複なく)に分類・整理するための判断材料を作る、Claude Code・Codex・Gemini Antigravity 向けのスキルである。`npx skills add` で、この3つへ配置できる。ファイルの配置と各ホストによる実際の読込は別に確認する。
 
 分割を自動で確定する道具ではない。埋め込みとクラスタリングで、グループ候補、境界にある曖昧な項目、重複しやすいグループの組を出す。軸の命名、排他性の判定、網羅性の穴の指摘は、ホストのモデルが行い、最終判断は利用者に残す。
 
@@ -31,7 +31,6 @@ LLM は呼ばない。項目のテキストは外部へ送らない。通信は�
 | `scripts/test_mece_cluster.py` | モデルを使わない確認(合成した埋め込みで動く) |
 | `scripts/skill_info.py` | 版と実行環境(OS・アプリ・モデル・日付)を出す。標準ライブラリだけ、読み取り専用 |
 | `scripts/test_skill_info.py` | `skill_info.py` の確認 |
-| `install.py` | インストール(更新)、実行時の前提(uv とモデル)の取得、アンインストール。配置するのは許可リストのファイルだけ(詳細は [docs/usage.md](docs/usage.md)) |
 
 ### リリースと CI
 
@@ -40,7 +39,7 @@ LLM は呼ばない。項目のテキストは外部へ送らない。通信は�
 | `VERSION` | スキルの版。`main` で変わると、Actions がタグと Release を作る |
 | `.github/workflows/release.yml` | `VERSION` が変わったときに、タグ・zip・sha256・Release を作る |
 | `docs/release-notes/` | リリースごとのノート(`v<版>.md`)。版を上げる PR に入れる |
-| `.github/workflows/ci.yml` | `install.py` を Linux と Windows で動かす確認 |
+| `.github/workflows/ci.yml` | 単体テストを Linux と Windows で動かす確認 |
 | `.github/workflows/real-model.yml` | 実モデルを Linux・Windows で動かす手動の検査 |
 
 ### 文書
@@ -74,19 +73,7 @@ npx skills add Mr-Kondo/mece-cluster-advisor -g --skill mece-cluster-advisor -a 
 npx skills update mece-cluster-advisor -g
 ```
 
-登録後は `npx skills update` でも更新できる(他の登録済みスキルも対象になる)。更新先は最新Releaseのタグではなく、GitHubの既定ブランチである。既存の `install.py` 配置からの移行、配置先の違い、削除方法は [CLI管理への移行](docs/usage.md#skills-cli)を参照する。
-
-### 既存インストーラを使う場合
-
-スキルとしてコピーする。リポジトリ直下で実行する。
-
-```bash
-uv run install.py
-```
-
-- Claude Code は `~/.claude/skills/`、Codex は `~/.agents/skills/`、Gemini Antigravity 向けは `~/.gemini/config/skills/` に配置する。
-- 再実行すると更新になる。置き換える旧コピーは、各 `skills/` の親にある `.skill-backups/mece-cluster-advisor/` へ退避して保持する。
-- 対象の絞り込み、取得の省略、削除、キャッシュの削除は、[docs/usage.md](docs/usage.md) の「インストール」にある。
+登録後は `npx skills update` でも更新できる(他の登録済みスキルも対象になる)。ref を指定せずに登録した場合、更新先は最新Releaseのタグではなく、GitHubの既定ブランチである。移行、配置先の違い、削除方法は [docs/usage.md](docs/usage.md#skills-cli) を参照する。
 
 ## 使い方
 
@@ -129,10 +116,9 @@ silhouette に合格ラインはない。正解が分かっている3テーマ18
 ```bash
 uv run scripts/test_mece_cluster.py   # モデル不要
 python3 scripts/test_skill_info.py    # 版と実行環境の出力
-python3 scripts/test_install.py       # 3環境の配置・バックアップ・削除
 ```
 
-`install.py` は、GitHub Actions で Linux(ubuntu-latest)と Windows(windows-latest)の両方で確かめている。確かめる内容は [docs/usage.md](docs/usage.md) の「確認」にある。
+単体テストは、GitHub Actions で Linux(ubuntu-latest)と Windows(windows-latest)の両方で動かしている。
 
 評価の入口は次のとおり。
 

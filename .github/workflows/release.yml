@@ -61,7 +61,6 @@ jobs:
           set -eu
           uv run scripts/test_mece_cluster.py
           python3 scripts/test_skill_info.py
-          python3 scripts/test_install.py
 
       - name: 配布物を作って中身を確かめる
         if: steps.version.outputs.exists != 'true'
@@ -74,7 +73,7 @@ jobs:
           git archive --format=zip --prefix=mece-cluster-advisor/ -o dist/mece-cluster-advisor.zip HEAD -- . ':(exclude).github' ':(exclude).gitignore'
           (cd dist && sha256sum mece-cluster-advisor.zip > mece-cluster-advisor.sha256)
           unzip -Z1 dist/mece-cluster-advisor.zip > dist/list.txt
-          for f in SKILL.md VERSION install.py scripts/mece_cluster.py scripts/skill_info.py; do
+          for f in SKILL.md VERSION scripts/mece_cluster.py scripts/skill_info.py; do
             grep -qx "mece-cluster-advisor/$f" dist/list.txt || { echo "error: zip に $f が無い"; exit 1; }
           done
           if grep -E '/\.(codex|serena|claude|venv|git)(/|$)|/feedback(/|$)' dist/list.txt; then echo "error: zip に入れてはいけないものがある"; exit 1; fi
