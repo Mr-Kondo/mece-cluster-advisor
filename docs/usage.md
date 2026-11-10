@@ -16,7 +16,7 @@
 
 | 項目 | 内容 |
 |---|---|
-| `uv` | 無ければ `install.py` が公式インストーラで入れる |
+| `uv` | [公式の手順](https://docs.astral.sh/uv/)で入れる |
 | Python | 3.12 以上(スクリプトを実行するとき) |
 | ディスク | 初回の取得で、埋め込みモデルと依存をダウンロードする |
 | 通信 | 初回の取得と更新確認に必要。以降はオフラインでも動く |
@@ -27,7 +27,7 @@
 
 ### skills CLIでの登録・更新・削除
 
-[`skills` CLI](https://github.com/vercel-labs/skills)で取得元を登録すると、`npx skills update` の対象になる。`install.py` でコピーしただけのスキルは自動では登録されない。Node.jsの要件はCLIの公式案内を確認する。
+[`skills` CLI](https://github.com/vercel-labs/skills)で取得元を登録すると、`npx skills update` の対象になる。手動でコピーしただけのスキルは自動では登録されない。Node.jsの要件はCLIの公式案内を確認する。
 
 ```bash
 # 初回登録。表示される配置先と上書き対象を確認する
@@ -38,90 +38,18 @@ npx skills update mece-cluster-advisor -g
 npx skills remove mece-cluster-advisor -g -y
 ```
 
-登録後は `npx skills update` だけでも更新できるが、他の登録済みスキルも更新対象になる。プロジェクト内で実行するときは、対話でグローバルを選ぶか `-g` を付ける。CLIの更新は既定ブランチを追跡し、最新Releaseのタグを選ぶものではない。
+登録後は `npx skills update` だけでも更新できるが、他の登録済みスキルも更新対象になる。プロジェクト内で実行するときは、対話でグローバルを選ぶか `-g` を付ける。ref を指定せずに登録した場合、CLIの更新は既定ブランチを追跡し、最新Releaseのタグを選ぶものではない。
 
-既存の配置から移行するときは、ホストを閉じ、上書きされるスキルフォルダを `skills/` の外へ退避してから登録する。このMacで確認したCLI 1.7.6は `~/.agents/skills/mece-cluster-advisor/` を実体とする共有配置で、Claude Codeは `~/.claude/skills/` からリンクされ、CodexとAntigravityは共有配置を使う。CLIの版により配置先が異なるため、登録時の表示を確認する。更新後は共有配置の `VERSION` で版を確認できる。`install.py` のAntigravity向け配置先は `~/.gemini/config/skills/` である。旧配置を使う環境では、その旧フォルダも退避し、同名のシンボリックリンクを共有配置へ向ける。この追加リンクはCLI管理外なので、削除時は別途取り除く。
+既存の配置から移行するときは、ホストを閉じ、上書きされるスキルフォルダを `skills/` の外へ退避してから登録する。このMacで確認したCLI 1.7.6は `~/.agents/skills/mece-cluster-advisor/` を実体とする共有配置で、Claude Codeは `~/.claude/skills/` からリンクされ、CodexとAntigravityは共有配置を使う。CLIの版により配置先が異なるため、登録時の表示を確認する。更新後は共有配置の `VERSION` で版を確認できる。旧インストーラ(v0.4.13まで)のAntigravity向け配置先は `~/.gemini/config/skills/` である。旧配置を使う環境では、その旧フォルダも退避し、同名のシンボリックリンクを共有配置へ向ける。この追加リンクはCLI管理外なので、削除時は別途取り除く。
 
-CLIは `install.py` の許可リストを使わず、リポジトリの補助文書・評価用ファイルも配置する。uv・Python依存・モデルの取得は行わない。必要な取得は初回のスクリプト実行時に行う。CLI管理後は `install.py` を同じ配置先に重ねて使わない。シンボリックリンクに対して既存インストーラは停止する。
+CLIはリポジトリの補助文書・評価用ファイルも配置する。uv・Python依存・モデルの取得は行わない。必要な取得は初回のスクリプト実行時に行う(`SKILL.md` の手順3)。
 
-### 基本
+### 取得したモデルと依存を消す
 
-```bash
-uv run install.py
-```
+スキルを削除しても、初回の実行で取得したものは残る。不要なら手動で消す。
 
-Claude Code は `~/.claude/skills/`、Codex は `~/.agents/skills/`、Gemini Antigravity 向けは `~/.gemini/config/skills/` にコピーされる。コピーするのは実行と判断に使うもの(`SKILL.md`、`VERSION`、`LICENSE`、`scripts/mece_cluster.py`、`scripts/skill_info.py`、`references/`(更新用の `update-knowledge.md` を除く)、`docs/k-selection.md`、`docs/model-choice.md`)だけである。評価・設計記録・テスト・README はリポジトリと Release の zip にだけある。再実行すると更新になる。各ホストの実際の発見・読込は、配置確認とは別に確認する。
-
-### オプション
-
-| オプション | 動作 |
-|---|---|
-| (なし) | Claude Code・Codex・Gemini Antigravity 向けの3か所へ配置する |
-| `--target claude` | Claude Code のみ |
-| `--target codex` | Codex のみ |
-| `--target gemini` | Gemini Antigravity 向けのみ |
-| `--no-fetch` | 依存とモデルの取得をしない |
-| `--uninstall` | 3か所から削除する（バックアップは残す） |
-| `--purge` | 削除し、取得したモデルと依存のキャッシュも消す |
-
-```bash
-uv run install.py --target claude
-uv run install.py --no-fetch
-uv run install.py --uninstall
-uv run install.py --purge
-```
-
-### uv がないとき
-
-`uv run install.py` は、Mac と Windows で同じコマンドである。`uv` が無ければ、次のコマンドでもよい。
-
-```bash
-python3 install.py
-```
-
-Windows では `python install.py` を使う。
-
-### インストールが行うこと
-
-| 前提 | `install.py` の動作 |
-|---|---|
-| `uv` が PATH にある | 無ければ公式インストーラで入れる(`~/.local/bin/`) |
-| 依存と埋め込みモデル | 4件の仮の入力を実際に流し、取得と動作を確かめる(モデルは約1.2GB。macOS arm64 での実測。Linux では CUDA 版 torch などで増えることがある) |
-| 通信できること | 取得はここで済む。以降は `HF_HUB_OFFLINE=1` でも動く |
-
-`--no-fetch` で取得を後回しにしたときは、最初の実行時に取得と了承が要る(`SKILL.md` の手順3)。
-
-### 更新
-
-`git pull` してから、同じコマンドをもう一度実行する。新しいコピーを準備してから置き換える。旧コピーは、各 `skills/` の親の `.skill-backups/mece-cluster-advisor/update-*/mece-cluster-advisor/` に保持し、標準出力の `backup:` に場所を示す。旧版のローカル変更もそこへ残る。リポジトリから消えたファイルは新しい配置先に残さない。
-
-復元するときはホストを閉じ、現行コピーも退避してから、表示された旧コピーを元の配置先へ戻す。バックアップは自動削除せず、アンインストールや `--purge` でも残す。不要と確認できたものだけ後で削除する。シンボリックリンクの配置先は安全のため自動更新せず止まる。
-
-バックアップには旧コピーの私的ファイルも残る。作成するディレクトリはPOSIXでは所有者のみアクセスできる権限を指定する。Windowsでは実際のアクセス制御は継承されるACLに依存する。既存ディレクトリの権限は変更しない。ホストがバックアップを走査しないことは未検証である。
-
-複数配置先をまとめて更新する場合、事前に明らかに不正な配置先を検出するが、実行中のI/O失敗で一部だけ更新される場合がある。標準出力の `installed:` と `backup:` を確認し、問題を解消して未更新の `--target` を再実行する。退避先が別ファイルシステムへのリンク等で旧版を移動できないときは、既存版を保持して止まる。
-
-### コピーされないもの
-
-- Git の作業ツリー(リポジトリ直下)から実行したとき:
-  - Git が追跡しているファイルだけをコピーする。未追跡のファイル(`.env`、`CLAUDE.local.md`、メモなど)は、名前によらず入らない。
-  - 追跡していても、次のものは入れない。`.git`、`.gitignore`、`.claude/`、`.codex/`、`.serena/`、`.venv/`、`feedback/`、`__pycache__/`、`*.local.md`。
-- Release の zip の展開先など、Git の管理外から実行したとき: 上の名前のものを除いて、すべてコピーする。zip には追跡しているファイルしか入っていないので、結果は同じになる。
-- `.git` があるのに `git` が使えないときは、名前の除外に戻さず、止まる。`git` を入れるか、zip から入れる。
-
-### `--purge` が消すもの
-
-- モデルのキャッシュ:`~/.cache/huggingface/hub/`。`HF_HOME` か `HF_HUB_CACHE` を設定していれば、そこ。
-- このスキルのスクリプト用に uv が作った実行環境のキャッシュ:`uv cache dir` の下。実測で約1.5GB。
-
-次は消えない。
-
-- 展開済みのパッケージ:他のプロジェクトと共有しているため。
-
-これも消したいときは、次を使い分ける。
-
-- `uv cache clean`:キャッシュを全消しする。
-- `uv cache prune`:未使用の分だけ消す。
+- モデルのキャッシュ:`~/.cache/huggingface/hub/models--cl-nagoya--ruri-v3-310m`。`HF_HOME` か `HF_HUB_CACHE` を設定していれば、その下。
+- uv の実行環境と展開済みパッケージ:`uv cache clean` で全消しする(他のプロジェクトの分も消える)。未使用の分だけなら `uv cache prune`。
 
 ### Codex の注意
 
@@ -252,12 +180,6 @@ uv run scripts/test_mece_cluster.py
 python3 scripts/test_skill_info.py
 ```
 
-`install.py` は GitHub Actions で、Linux(ubuntu-latest)と Windows(windows-latest)の両方で動かして確かめている。確かめている内容は次のとおり。
-
-- `uv run install.py` でインストールできること
-- 除外対象(`.claude/` など)と、追跡していないファイルが入らないこと
-- Git の管理外(zip の展開先)からも入れられること
-- インストール元と同じ場所からの実行が拒否されること
-- アンインストールと再インストール、`--purge` ができること
+単体テストは GitHub Actions で、Linux(ubuntu-latest)と Windows(windows-latest)の両方で動かして確かめている。
 
 発動精度の評価は [evals/](../evals/) にある。実行方法と測定結果は [evals/README.md](../evals/README.md) を見る。

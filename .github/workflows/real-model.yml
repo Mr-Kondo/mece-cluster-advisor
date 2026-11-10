@@ -26,14 +26,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.3.0
-      - name: インストール(依存とモデルを取得し、仮の 4 件を実際に流す)
-        shell: bash
-        run: uv run install.py --target claude
       - name: 17 件を 3 グループに分ける
         shell: bash
         run: |
           set -euo pipefail   # パイプの先頭(検査)が落ちたら、tee があっても失敗にする
-          uv run "$HOME/.claude/skills/mece-cluster-advisor/scripts/mece_cluster.py" evals/smoke-items.txt --k 3 --out result.json
+          uv run scripts/mece_cluster.py evals/smoke-items.txt --k 3 --out result.json
           ${{ matrix.python }} - <<'PY' | tee summary.txt
           import json, platform
           r = json.load(open("result.json", encoding="utf-8"))

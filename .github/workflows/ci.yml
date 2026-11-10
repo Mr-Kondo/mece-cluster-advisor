@@ -6,6 +6,7 @@ permissions:
   contents: read
 
 jobs:
+  # ジョブ名は main の必須チェック(install (...))と一致させる。変えるときはブランチ保護も変える
   install:
     strategy:
       fail-fast: false
@@ -29,90 +30,3 @@ jobs:
         shell: bash
         run: |
           ${{ matrix.python }} scripts/test_skill_info.py
-      - name: 3環境の配置と更新時バックアップの確認
-        shell: bash
-        run: ${{ matrix.python }} scripts/test_install.py
-      - name: インストール(uv run、取得はしない)
-        shell: bash
-        run: |
-          set -eu
-          target="$HOME/.claude/skills/mece-cluster-advisor"
-          mkdir -p .claude .codex .serena .venv feedback   # 手元に置かれがちなダミーを作り、コピーされないことを確かめる
-          touch .claude/x .codex/x .serena/x .venv/x feedback/x CLAUDE.local.md AGENTS.local.md
-          touch .env secrets.txt scripts/untracked-note.txt   # 除外の名前に無い、未追跡の私的ファイル
-          uv run install.py --no-fetch
-          test -f "$target/SKILL.md"
-          test -f "$target/scripts/mece_cluster.py"
-          test ! -e "$target/.claude"         # 実行環境の設定は持ち込まない
-          test ! -e "$target/.codex"
-          test ! -e "$target/.serena"
-          test ! -e "$target/.venv"
-          test ! -e "$target/feedback"
-          test ! -e "$target/CLAUDE.local.md"  # 私的な指示ファイルも持ち込まない
-          test ! -e "$target/AGENTS.local.md"
-          test ! -e "$target/.env"             # 未追跡のファイルは、名前によらず持ち込まない
-          test ! -e "$target/secrets.txt"
-          test ! -e "$target/scripts/untracked-note.txt"
-          test -f "$target/scripts/skill_info.py"  # 配置するファイルは取りこぼさない
-          test -f "$target/references/judgment.md"
-          test -f "$target/docs/k-selection.md"
-          test ! -e "$target/scripts/test_skill_info.py"  # 評価・設計記録・テスト・READMEは配置しない
-          test ! -e "$target/docs/usage.md"
-          test ! -e "$target/evals"
-          test ! -e "$target/adr"
-          test ! -e "$target/knowledge"
-          test ! -e "$target/README.md"
-          test ! -e "$target/references/update-knowledge.md"
-          test ! -e "$target/__pycache__"
-          test ! -e "$target/.gitignore"
-          test ! -e "$target/.git"
-      - name: Git の管理外(zip の展開先)からも入れられる
-        shell: bash
-        run: |
-          set -eu
-          dir="$(mktemp -d)"
-          git archive HEAD | tar -x -C "$dir"
-          test ! -e "$dir/.git"
-          rm -rf "$HOME/.claude/skills/mece-cluster-advisor"   # 前のインストール先を使い回さない
-          (cd "$dir" && uv run install.py --target claude --no-fetch)
-          test -f "$HOME/.claude/skills/mece-cluster-advisor/SKILL.md"
-          test -f "$HOME/.claude/skills/mece-cluster-advisor/scripts/mece_cluster.py"
-          test -f "$HOME/.claude/skills/mece-cluster-advisor/docs/k-selection.md"
-          test ! -e "$HOME/.claude/skills/mece-cluster-advisor/docs/usage.md"
-          test ! -e "$HOME/.claude/skills/mece-cluster-advisor/evals"
-      - name: インストール元と同じ場所からは実行できない
-        shell: bash
-        run: |
-          set -eu
-          target="$HOME/.claude/skills/mece-cluster-advisor"
-          cp install.py "$target/install.py"   # 配置先には install.py が入らないので、置いて試す
-          if (cd "$target" && uv run install.py --target claude) 2> "$RUNNER_TEMP/self.txt"; then
-            echo "error: 自己上書きを拒否しなかった"
-            exit 1
-          fi
-          grep -q "インストール元と先が同じ" "$RUNNER_TEMP/self.txt"   # 別の理由で失敗していない
-          test -f "$target/SKILL.md"          # 消えていない
-      - name: アンインストールと再インストール(uv なし)
-        shell: bash
-        run: |
-          set -eu
-          ${{ matrix.python }} install.py --uninstall
-          test ! -e "$HOME/.claude/skills/mece-cluster-advisor"
-          ${{ matrix.python }} install.py --target codex --no-fetch
-          test -f "$HOME/.agents/skills/mece-cluster-advisor/SKILL.md"
-          ${{ matrix.python }} install.py --uninstall --target all
-          test ! -e "$HOME/.agents/skills/mece-cluster-advisor"
-      - name: 取得したモデルと、uv のキャッシュ環境も消せる(--purge)
-        shell: bash
-        run: |
-          set -eu
-          cache="$HOME/.cache/huggingface/hub/models--cl-nagoya--ruri-v3-310m"
-          mkdir -p "$cache/snapshots/x"
-          echo dummy > "$cache/snapshots/x/model.safetensors"
-          export UV_CACHE_DIR="$HOME/.uvcache-test"   # 実行環境のキャッシュではなく、この場所で確認する
-          mkdir -p "$UV_CACHE_DIR/environments-v2/mece-cluster-deadbeef" "$UV_CACHE_DIR/environments-v2/other-1234"
-          echo dummy > "$UV_CACHE_DIR/environments-v2/mece-cluster-deadbeef/pyvenv.cfg"
-          ${{ matrix.python }} install.py --purge
-          test ! -e "$cache"
-          test ! -e "$UV_CACHE_DIR/environments-v2/mece-cluster-deadbeef"  # このスキルの分は消える
-          test -e "$UV_CACHE_DIR/environments-v2/other-1234"               # 他人の分は残す
